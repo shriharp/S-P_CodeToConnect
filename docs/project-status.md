@@ -1,76 +1,68 @@
-
 # Project Status
 
-Last verified: Pending verification in the current repository.
+Last verified: 2026-10-09, against the repository and a passing test run.
 
-## Reported Handoff State
+## Verified Implemented Features
 
-The previous environment reportedly implemented:
-- Pydantic v0.1 signal contract.
-- Score bounds/type validation.
-- Null-versus-neutral handling.
-- Evidence membership validation.
-- Timestamp validation.
-- Quality-state consistency checks.
-- Independent company-result tests.
+- Pydantic v2 signal contract (schema 0.1) with score bounds, null-versus-neutral
+  semantics, evidence-membership validation, timestamp ordering, and
+  quality-state consistency checks. `backend/app/core/signal_contract.py`
+- Lexicon NLP layer: company-specific sentiment, primary event classification,
+  sentence-level evidence excerpts. `backend/app/nlp/`
+- Deterministic impact rubric: factor extraction (quantified loss, breadth,
+  duration, continuity cues), banded scoring, lower-band default, abstention
+  to null. `backend/app/impact/rubric.py`
+- Module A mock-index rebalancer: sentiment-direction adjustments, 25% position
+  cap via bounded normalization, freshness window, duplicate-event consumption
+  gate, nonnegative weights summing to 100%, skip-reason reporting.
+  `backend/app/portfolio/`
+- Ingestion adapters for two operational source types (news, social).
+  `backend/app/ingestion/adapters.py`
+- Recorded-output replay (JSONL record/load, no inference). `backend/app/replay/`
+- FastAPI endpoints: `/health`, `/analyze`, `/ingest`, `/replay`, `/rebalance`.
+  `backend/app/api/main.py`
+- React dashboard (Vite): signal analyzer, mock rebalance, ingest & replay tabs.
+  `frontend/`
+- Test suite: 49 tests passing (contract, rubric, rebalancer, pipeline,
+  adapters, replay). `backend/tests/`
 
-Reported documentation:
-- 13 synthetic design cases.
-- Signal contract.
-- Impact rubric.
-- Architecture decisions.
-- Setup and validation documentation.
-- Dependency-license inventory.
+## Known Limitations (current)
 
-Limited security checks were reportedly performed.
+- Company resolution is not implemented; signals carry
+  `unresolved_company` and ticker null. Module A consumes synthetic
+  ticker-tagged fixtures instead.
+- Sentiment/event NLP is lexicon-based. Model-backed refinement is planned
+  and must be benchmarked before adoption (docs/model-evaluation.md).
+- No persistence layer; recordings are JSONL files under `backend/recordings/`.
+- No containers or CI yet.
 
-These are historical handoff claims, not verified current-repository status.
+## Execution Modes
 
-## Reported Unimplemented Features
-- FastAPI endpoints.
-- React frontend.
-- NLP inference and model selection.
-- Source ingestion adapters.
-- Two operational source types.
-- Persistence/database.
-- Module A rebalancing.
-- Dashboard.
-- Event-level duplicate protection.
-- Recorded-output fallback.
-- Containers.
-- Architecture diagram.
-- Load testing.
-- Final license and notices.
-- Final README, slides, and demo.
-- Deployment.
+- Live inference: `/analyze`, `/ingest` with provenance=live.
+- Synthetic fixtures: `/rebalance` demo signals, provenance=synthetic.
+- Recorded-output replay: `/ingest` with record=true, then `/replay`.
+- Fresh historical replay (historical text + fresh inference) is available by
+  feeding dated items through `/ingest` with provenance=replay.
 
 ## Immediate Priorities
-1. Inspect repository and run existing tests.
-2. Evaluate and select lightweight NLP models.
-3. Implement text -> company signal -> FastAPI response.
-4. Implement deterministic impact scoring with abstention.
-5. Implement bounded Module A allocation.
-6. Build minimal React dashboard.
-7. Integrate second source type.
-8. Add freshness and duplicate protection.
-9. Implement recorded-output fallback.
-10. Containerize, test, document, and prepare submission.
+
+1. Company/entity resolution with ticker mapping.
+2. Model-backed sentiment benchmark against lexicon baseline
+   (docs/model-evaluation.md).
+3. Persistence layer for signals.
+4. README, demo script, and submission materials (docs/submission.md).
+5. Containerization and license notices (docs/security-licensing.md).
 
 ## Status Maintenance Rules
-After each meaningful milestone:
-- Update verified implemented features.
-- Record tests executed and results.
-- Record unresolved issues.
-- Identify the next concrete task.
-- Keep this file short.
 
-Never mark functionality complete without checking the code and relevant tests.
-
-## Current Milestone
-Verify the transferred repository and establish a working baseline.
+After each meaningful milestone: verify against code and tests, update this
+file, keep it short. Never mark functionality complete without a test run.
 
 ## Current Blockers
-Unknown until repository inspection.
+
+None.
 
 ## Next Action
-Inspect the project structure, environment, dependencies, and test results before making changes.
+
+Company/entity resolution so live signals can flow into Module A without
+synthetic ticker tagging.
