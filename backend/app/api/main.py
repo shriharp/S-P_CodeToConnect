@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.signal_contract import RiskSignal, SourceType
@@ -10,10 +10,29 @@ from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
 from app.replay import recorder
+from app.storage.signals import SignalStore, SqliteSignalStore
 
 app = FastAPI(title="Risk Engine API", version="0.1.0")
 
 RECORDINGS_DIR = Path(__file__).resolve().parents[2] / "recordings"
+DB_PATH = Path(__file__).resolve().parents[2] / "data" / "signals.db"
+
+_store: SignalStore | None = None
+
+
+def get_store() -> SignalStore:
+    global _store
+    if _store is None:
+        _store = SqliteSignalStore(DB_PATH)
+    return _store
+
+
+@app.on_event("shutdown")
+def _close_store() -> None:
+    global _store
+    if _store is not None:
+        _store.close()
+        _store = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -58,8 +77,8 @@ class IngestRequest(BaseModel):
 
 
 @app.post("/ingest", response_model=list[RiskSignal])
-def ingest(req: IngestRequest) -> list[RiskSignal]:
-    """Normalize and analyze a batch of news or social items."""
+def ingest(req: IngestRequest, store: SignalStore = Depends(get_store)) -> list[RiskSignal]:
+    """Normalize and analyze a batch of news or social items; persist results."""
     if req.provenance not in ("live", "replay", "synthetic"):
         raise HTTPException(status_code=422, detail="invalid provenance")
     signals: list[RiskSignal] = []
@@ -72,6 +91,8 @@ def ingest(req: IngestRequest) -> list[RiskSignal]:
             raise HTTPException(
                 status_code=422, detail=f"item {raw.id}: {exc}"
             ) from exc
+    for signal in signals:
+        store.save(signal)
     if req.record:
         RECORDINGS_DIR.mkdir(exist_ok=True)
         path = RECORDINGS_DIR / f"ingest-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.jsonl"
@@ -82,6 +103,22 @@ def ingest(req: IngestRequest) -> list[RiskSignal]:
 
 class ReplayRequest(BaseModel):
     file: str = Field(min_length=1)
+
+
+@app.get("/signals", response_model=list[RiskSignal])
+def list_signals(
+    ticker: str | None = None,
+    since: datetime | None = None,
+    limit: int = 100,
+    store: SignalStore = Depends(get_store),
+) -> list[RiskSignal]:
+    """Query persisted signals (newest first)."""
+    return store.list(ticker=ticker, since=since, limit=min(limit, 500))
+
+
+@app.get("/signals/count")
+def signals_count(store: SignalStore = Depends(get_store)) -> dict:
+    return {"count": store.count()}
 
 
 @app.post("/replay", response_model=list[RiskSignal])
