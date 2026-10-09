@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.analysis import analyze
-from app.signal_contract import RiskSignal
+from app.core.signal_contract import RiskSignal
+from app.nlp.pipeline import analyze
 
 app = FastAPI(title="Risk Engine API", version="0.1.0")
 
