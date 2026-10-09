@@ -67,12 +67,11 @@ def ingest(req: IngestRequest) -> list[RiskSignal]:
         payload = raw.model_dump(exclude_none=True)
         try:
             item = normalize_item(req.source_type, payload)
-            signal = analyze_item(item, provenance=req.provenance)
+            signals.extend(analyze_item(item, provenance=req.provenance))
         except (ValueError, KeyError) as exc:
             raise HTTPException(
                 status_code=422, detail=f"item {raw.id}: {exc}"
             ) from exc
-        signals.append(signal)
     if req.record:
         RECORDINGS_DIR.mkdir(exist_ok=True)
         path = RECORDINGS_DIR / f"ingest-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.jsonl"
