@@ -97,24 +97,21 @@ def rebalance(
             continue
 
         delta = step * signal.sentiment_score
-        others_total = sum(w for t, w in weights.items() if t != ticker)
         proposed = weights[ticker] + delta
         if proposed < 0:
             proposed = 0.0
-        cap = MAX_WEIGHT
-        if proposed > cap:
-            proposed = cap
-        if proposed > others_total:
-            proposed = others_total
-        adjustments[ticker] = adjustments.get(ticker, 0.0) + (proposed - weights[ticker])
         weights[ticker] = proposed
         consumed.append(signal.signal_id)
         event_key = f"{signal.company_id}:{signal.event_category.value}:{signal.event_summary[:80]}"
         consumed_events.add(event_key)
 
-    total = sum(weights.values())
-    if total > 0:
-        weights = {t: w / total for t, w in weights.items()}
+    weights = _bounded_normalize(weights, MAX_WEIGHT)
+
+    initial = portfolio.weights
+    for t, w in weights.items():
+        delta = w - initial[t]
+        if abs(delta) > 1e-12:
+            adjustments[t] = adjustments.get(t, 0.0) + delta
 
     return RebalanceResult(
         proposed_weights=weights,
@@ -122,3 +119,37 @@ def rebalance(
         consumed_signal_ids=consumed,
         skipped=skipped,
     )
+
+
+def _bounded_normalize(weights: dict[str, float], cap: float) -> dict[str, float]:
+    """Scale to sum 1 while enforcing per-position cap.
+
+    Positions at/over the cap are pinned; the remainder is redistributed
+    proportionally among uncapped positions. Raises when caps are jointly
+    infeasible (fewer than 1/cap positions).
+    """
+    n = len(weights)
+    if n * cap < 1.0 - 1e-9:
+        raise ValueError(
+            f"caps infeasible: {n} positions cannot hold 100% at cap {cap:.0%}"
+        )
+    total = sum(weights.values())
+    if total <= 0:
+        raise ValueError("all weights zero; cannot normalize")
+    scaled = {t: w / total for t, w in weights.items()}
+
+    pinned: set[str] = set()
+    while True:
+        over = {t for t, w in scaled.items() if w > cap + 1e-12} - pinned
+        if not over:
+            return scaled
+        pinned |= over
+        for t in pinned:
+            scaled[t] = cap
+        free_total = 1.0 - len(pinned) * cap
+        free = {t: w for t, w in scaled.items() if t not in pinned}
+        free_sum = sum(free.values())
+        if free_sum <= 0:
+            raise ValueError("caps infeasible: no headroom to redistribute")
+        for t in free:
+            scaled[t] = free[t] / free_sum * free_total
