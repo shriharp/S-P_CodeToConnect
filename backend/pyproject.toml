@@ -11,6 +11,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx>=0.27"]
+# Opt-in model sentiment backend (Apache-2.0 checkpoint; see docs/model-evaluation.md).
+# CPU-only torch keeps the wheel small; ~420 MB peak RSS at inference.
+model = [
+    "torch>=2.2",
+    "transformers>=4.40",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

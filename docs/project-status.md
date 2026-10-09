@@ -19,26 +19,36 @@ Last verified: 2026-10-09, against the repository and a passing test run.
 - Ingestion adapters for two operational source types (news, social).
   `backend/app/ingestion/adapters.py`
 - Recorded-output replay (JSONL record/load, no inference). `backend/app/replay/`
-- FastAPI endpoints: `/health`, `/analyze`, `/ingest`, `/replay`, `/rebalance`.
-  `backend/app/api/main.py`
+- FastAPI endpoints: `/health`, `/analyze`, `/ingest`, `/replay`, `/rebalance`,
+  `/signals`, `/signals/count`. `backend/app/api/main.py`
 - React dashboard (Vite): signal analyzer, mock rebalance, ingest & replay tabs.
   `frontend/`
-- Test suite: 49 tests passing (contract, rubric, rebalancer, pipeline,
-  adapters, replay). `backend/tests/`
+- Test suite: 64 tests passing (contract, rubric, rebalancer, pipeline,
+  adapters, replay, storage, entities, model backend). `backend/tests/`
+- Entity resolution (alias registry for the 10 mock-index companies); one
+  signal per resolved company. `backend/app/core/entities.py`
+- Persistence: SQLite signal store behind a swappable `SignalStore` seam;
+  signals saved on ingest, queryable via `/signals`. `backend/app/storage/`
+- Model-backed sentiment (opt-in `sentiment_backend: "model"`): DistilRoBERTa
+  financial checkpoint, Apache-2.0, CPU-viable (27 ms/item, 419 MB peak RSS).
+  Benchmarked vs lexicon baseline in `docs/model-evaluation.md`.
+  `backend/app/nlp/sentiment_model.py`, `backend/benchmarks/`
 
 ## Known Limitations (current)
 
-- Company resolution is not implemented; signals carry
-  `unresolved_company` and ticker null. Module A consumes synthetic
-  ticker-tagged fixtures instead.
-- Sentiment/event NLP is lexicon-based. Model-backed refinement is planned
-  and must be benchmarked before adoption (docs/model-evaluation.md).
-- No persistence layer; recordings are JSONL files under `backend/recordings/`.
+- Entity registry covers only the 10 mock-index companies; other names are
+  flagged `unresolved_company`. No fuzzy/linker-based resolution yet.
+- Sentiment model is company-agnostic; company attribution comes from the
+  alias resolver, not the model. Multi-company attribution accuracy not yet
+  measured on real data.
+- Impact rubric is deterministic and abstains often by design; bands tuned on
+  synthetic text only.
 - No containers or CI yet.
 
 ## Execution Modes
 
-- Live inference: `/analyze`, `/ingest` with provenance=live.
+- Live inference: `/analyze`, `/ingest` with provenance=live (lexicon default;
+  `sentiment_backend: "model"` for the transformer).
 - Synthetic fixtures: `/rebalance` demo signals, provenance=synthetic.
 - Recorded-output replay: `/ingest` with record=true, then `/replay`.
 - Fresh historical replay (historical text + fresh inference) is available by
@@ -46,12 +56,11 @@ Last verified: 2026-10-09, against the repository and a passing test run.
 
 ## Immediate Priorities
 
-1. Company/entity resolution with ticker mapping.
-2. Model-backed sentiment benchmark against lexicon baseline
-   (docs/model-evaluation.md).
-3. Persistence layer for signals.
-4. README, demo script, and submission materials (docs/submission.md).
-5. Containerization and license notices (docs/security-licensing.md).
+1. Containerization (Dockerfile) and dependency pinning.
+2. Submission materials: demo script, slides, final license notices
+   (docs/submission.md, docs/security-licensing.md).
+3. Expand entity registry / evaluate linker-based resolution.
+4. Real (non-synthetic) evaluation set for accuracy claims.
 
 ## Status Maintenance Rules
 
@@ -64,5 +73,4 @@ None.
 
 ## Next Action
 
-Company/entity resolution so live signals can flow into Module A without
-synthetic ticker tagging.
+Containerize the backend + frontend and prepare submission materials.
