@@ -7,6 +7,7 @@ Analyzer interface and is benchmarked before adoption (docs/architecture.md).
 
 import re
 
+from app import impact
 from app.signal_contract import (
     AnalysisStatus,
     EventCategory,
@@ -90,12 +91,16 @@ def analyze(text: str, source_item_id: str, provider: str, provenance: str) -> "
     event_category, event_excerpts = classify_event(text)
     senti_score, senti_excerpts = sentiment(text)
 
-    excerpts = event_excerpts + senti_excerpts
+    factors = impact.extract_factors(text)
+    impact_score = impact.score(factors)
+    impact_explanation = impact.explain(factors, impact_score) if impact_score else None
+    impact_excerpts = _sentence_excerpts(
+        text, factors.evidence, EvidenceSupports.impact
+    )
+
+    excerpts = event_excerpts + senti_excerpts + impact_excerpts
     flags: set[QualityFlag] = {QualityFlag.unresolved_company}
-    if senti_score is None:
-        flags.add(QualityFlag.insufficient_evidence)
-    impact_score, impact_explanation = None, None  # deterministic rubric lands next
-    if impact_score is None:
+    if senti_score is None or impact_score is None:
         flags.add(QualityFlag.insufficient_evidence)
     signal = RiskSignal(
         signal_id=f"{source_item_id}-s0",
@@ -115,7 +120,9 @@ def analyze(text: str, source_item_id: str, provider: str, provenance: str) -> "
         impact_explanation=impact_explanation,
         evidence_excerpts=excerpts,
         analysis_status=(
-            AnalysisStatus.abstained if senti_score is None else AnalysisStatus.complete
+            AnalysisStatus.abstained
+            if senti_score is None and impact_score is None
+            else AnalysisStatus.complete
         ),
         quality_flags=flags,
         analyzed_at=now,
