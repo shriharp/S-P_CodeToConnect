@@ -51,7 +51,9 @@ def test_no_cues_abstains():
 
 
 def test_missing_published_at_flagged():
-    sig = analyze_item(news_item("Acme wins a contract partnership."), provenance="live")
+    sig = analyze_item(
+        news_item("Acme wins a contract partnership."), provenance="live"
+    )[0]
     assert QualityFlag.missing_publication_time in sig.quality_flags
     assert sig.published_at is None
 
@@ -63,11 +65,28 @@ def test_social_source_type_preserved():
         external_id="so-1",
         text="AAPL plunge after lawsuit, downgrade fears!",
     )
-    sig = analyze_item(item, provenance="synthetic")
+    sig = analyze_item(item, provenance="synthetic")[0]
     assert sig.source_type is SourceType.social
 
 
-def test_company_unresolved_until_entity_layer():
-    sig = analyze_item(news_item("Acme wins a contract."), provenance="live")
+def test_resolved_company_carries_ticker():
+    sig = analyze_item(news_item("Apple wins a contract."), provenance="live")[0]
+    assert sig.ticker == "AAPL"
+    assert QualityFlag.unresolved_company not in sig.quality_flags
+
+
+def test_multi_company_text_produces_one_signal_each():
+    signals = analyze_item(
+        news_item("Apple cut revenue while Pfizer won a partnership contract."),
+        provenance="live",
+    )
+    assert {s.ticker for s in signals} == {"AAPL", "PFE"}
+    assert len({s.signal_id for s in signals}) == 2
+
+
+def test_unresolved_company_flagged():
+    sig = analyze_item(
+        news_item("Some unknown firm won a contract."), provenance="live"
+    )[0]
     assert sig.ticker is None
     assert QualityFlag.unresolved_company in sig.quality_flags

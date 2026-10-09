@@ -43,7 +43,7 @@ def test_recorder_roundtrip(tmp_path):
     sig = analyze_item(
         normalize_item(SourceType.news, {"id": "r1", "headline": "Acme misses earnings."}),
         provenance="replay",
-    )
+    )[0]
     recorder.record(sig, path)
     loaded = recorder.load(path)
     assert len(loaded) == 1
