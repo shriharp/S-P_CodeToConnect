@@ -74,6 +74,7 @@ class IngestRequest(BaseModel):
     items: list[IngestItem] = Field(min_length=1)
     provenance: str = "live"
     record: bool = False
+    sentiment_backend: str = "lexicon"
 
 
 @app.post("/ingest", response_model=list[RiskSignal])
@@ -81,12 +82,20 @@ def ingest(req: IngestRequest, store: SignalStore = Depends(get_store)) -> list[
     """Normalize and analyze a batch of news or social items; persist results."""
     if req.provenance not in ("live", "replay", "synthetic"):
         raise HTTPException(status_code=422, detail="invalid provenance")
+    if req.sentiment_backend not in ("lexicon", "model"):
+        raise HTTPException(status_code=422, detail="invalid sentiment_backend")
     signals: list[RiskSignal] = []
     for raw in req.items:
         payload = raw.model_dump(exclude_none=True)
         try:
             item = normalize_item(req.source_type, payload)
-            signals.extend(analyze_item(item, provenance=req.provenance))
+            signals.extend(
+                analyze_item(
+                    item,
+                    provenance=req.provenance,
+                    sentiment_backend=req.sentiment_backend,
+                )
+            )
         except (ValueError, KeyError) as exc:
             raise HTTPException(
                 status_code=422, detail=f"item {raw.id}: {exc}"

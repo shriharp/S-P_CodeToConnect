@@ -20,21 +20,47 @@ from app.impact import rubric
 from app.ingestion.adapters import RawSourceItem
 from app.nlp.events import classify_event
 from app.nlp.excerpts import sentence_excerpts
-from app.nlp.sentiment import score_sentiment
+from app.nlp.sentiment import NEGATIVE_CUES, POSITIVE_CUES, score_sentiment
 
 
-def analyze_item(item: RawSourceItem, provenance: str, source_item_id: str | None = None) -> list[RiskSignal]:
+def _all_cues() -> list[str]:
+    return list(NEGATIVE_CUES) + list(POSITIVE_CUES)
+
+
+def analyze_item(
+    item: RawSourceItem,
+    provenance: str,
+    source_item_id: str | None = None,
+    sentiment_backend: str = "lexicon",
+) -> list[RiskSignal]:
     """Return one RiskSignal per resolved company in the source item.
 
     Contract unit: one source item + one affected company + one primary event.
     When no company resolves, a single unresolved signal is returned with
     quality flags (never a fabricated identity).
+
+    sentiment_backend: "lexicon" (default, no model download) or "model"
+    (DistilRoBERTa financial checkpoint; see docs/model-evaluation.md).
+    The model overrides the score only; evidence excerpts remain exact
+    source substrings drawn from the lexicon cue layer.
     """
     item_id = source_item_id or item.external_id
     ingested_at = datetime.now(timezone.utc)
     now = datetime.now(timezone.utc)
     event_category, event_excerpts = classify_event(item.text)
     senti_score, senti_excerpts = score_sentiment(item.text)
+    if sentiment_backend == "model":
+        from app.nlp.sentiment_model import score_sentiment_model
+
+        model_score = score_sentiment_model(item.text)
+        if model_score is not None:
+            senti_score = model_score
+            senti_excerpts = sentence_excerpts(
+                item.text, _all_cues(), EvidenceSupports.sentiment
+            )
+        method_version = "distilroberta-fin-0.1"
+    else:
+        method_version = "lexicon-0.1+entities-0.1"
 
     factors = rubric.extract_factors(item.text)
     impact_score = rubric.score(factors)
@@ -88,7 +114,7 @@ def analyze_item(item: RawSourceItem, provenance: str, source_item_id: str | Non
             ),
             quality_flags=company_flags,
             analyzed_at=now,
-            analysis_method_version="lexicon-0.1+entities-0.1",
+            analysis_method_version=method_version,
         )
         validate_evidence_membership(signal, item.text)
         signals.append(signal)
