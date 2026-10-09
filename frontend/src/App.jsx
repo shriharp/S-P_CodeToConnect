@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { analyzeText, rebalancePortfolio } from './api.js'
+import { analyzeText, rebalancePortfolio, ingestItems, replayRecording } from './api.js'
 
 function SignalView() {
   const [text, setText] = useState('')
@@ -151,6 +151,108 @@ function RebalanceCard({ result }) {
   )
 }
 
+const DEMO_INGEST = [
+  'Acme cut revenue by 8 percent after a factory shutdown at its plant in Ohio.',
+  'Globex announced a new product launch with strong guidance.',
+].join('\n')
+
+function IngestView() {
+  const [sourceType, setSourceType] = useState('news')
+  const [lines, setLines] = useState(DEMO_INGEST)
+  const [record, setRecord] = useState(false)
+  const [signals, setSignals] = useState(null)
+  const [replayFile, setReplayFile] = useState('')
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const run = async () => {
+    setLoading(true)
+    setError(null)
+    setSignals(null)
+    try {
+      const items = lines
+        .split('\n')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((text, i) => ({ id: `ui-${Date.now()}-${i}`, text }))
+      setSignals(await ingestItems({ source_type: sourceType, items, provenance: 'live', record }))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const doReplay = async () => {
+    setLoading(true)
+    setError(null)
+    setSignals(null)
+    try {
+      setSignals(await replayRecording({ file: replayFile }))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="panel">
+      <p className="muted">
+        Batch-ingest news or social text (one item per line). Each line becomes an
+        independent company-specific signal. Recording writes outputs for later
+        no-inference replay.
+      </p>
+      <select value={sourceType} onChange={(e) => setSourceType(e.target.value)}>
+        <option value="news">news</option>
+        <option value="social">social</option>
+      </select>{' '}
+      <label className="muted">
+        <input type="checkbox" checked={record} onChange={(e) => setRecord(e.target.checked)} />{' '}
+        record outputs for replay
+      </label>
+      <textarea
+        value={lines}
+        onChange={(e) => setLines(e.target.value)}
+        style={{ marginTop: '0.75rem' }}
+      />
+      <button className="action" onClick={run} disabled={loading || !lines.trim()}>
+        {loading ? 'Ingesting...' : 'Ingest batch'}
+      </button>
+      <div style={{ marginTop: '1rem' }}>
+        <input
+          value={replayFile}
+          onChange={(e) => setReplayFile(e.target.value)}
+          placeholder="recording filename (e.g. ingest-20261009T120000Z.jsonl)"
+        />{' '}
+        <button className="action" onClick={doReplay} disabled={loading || !replayFile.trim()}>
+          Replay recording
+        </button>
+      </div>
+      {error && <div className="error">{error}</div>}
+      {signals && (
+        <table>
+          <thead>
+            <tr><th>Source</th><th>Event</th><th>Sentiment</th><th>Impact</th><th>Status</th><th>Flags</th></tr>
+          </thead>
+          <tbody>
+            {signals.map((s) => (
+              <tr key={s.signal_id}>
+                <td>{s.source_type} ({s.provenance})</td>
+                <td>{s.event_category}</td>
+                <td>{s.sentiment_score ?? 'null'}</td>
+                <td>{s.impact_score ?? 'null'}</td>
+                <td>{s.analysis_status}</td>
+                <td>{s.quality_flags.join(', ') || 'none'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState('signals')
   return (
@@ -163,8 +265,13 @@ export default function App() {
         <button className={tab === 'rebalance' ? 'active' : ''} onClick={() => setTab('rebalance')}>
           Mock rebalance
         </button>
+        <button className={tab === 'ingest' ? 'active' : ''} onClick={() => setTab('ingest')}>
+          Ingest &amp; replay
+        </button>
       </div>
-      {tab === 'signals' ? <SignalView /> : <RebalanceView />}
+      {tab === 'signals' && <SignalView />}
+      {tab === 'rebalance' && <RebalanceView />}
+      {tab === 'ingest' && <IngestView />}
     </div>
   )
 }

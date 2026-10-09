@@ -15,3 +15,5 @@ async function post(path, body) {
 
 export const analyzeText = (payload) => post('/analyze', payload)
 export const rebalancePortfolio = (payload) => post('/rebalance', payload)
+export const ingestItems = (payload) => post('/ingest', payload)
+export const replayRecording = (payload) => post('/replay', payload)
