@@ -290,3 +290,47 @@ def demo_replay(
             }
         )
     return out
+
+
+@app.post("/live/poll", response_model=dict)
+def live_poll(
+    news_query: str = "apple OR microsoft OR jpmorgan OR pfizer OR exxon",
+    ledger: RebalanceStore = Depends(get_ledger),
+    store: SignalStore = Depends(get_store),
+) -> dict:
+    """One live ingestion cycle: GDELT news + StockTwits social + yfinance quotes.
+
+    Primary data path (provenance=live). Persists signals + the rebalance event
+    to the ledger. A source that fails degrades gracefully and is reported in
+    source_errors; never silently substituted with fabricated data.
+    """
+    from app.ingestion.live_poller import poll_live
+
+    out = poll_live(news_query=news_query)
+    event = out["decision_event"]
+    for sig in out["signals"]:
+        store.save(sig)
+    event_id = f"live-{out['polled_at'].replace(':', '').replace('.', '')}"
+    ledger.append(event_from_result(event, event_id, datetime.fromisoformat(out["polled_at"])))
+
+    out["signals"] = [s.model_dump() for s in out["signals"]]
+    out["event_id"] = event_id
+    out["decision_event"] = {
+        "proposed_weights": event.proposed_weights,
+        "original_weights": event.original_weights,
+        "adjustments": event.adjustments,
+        "consumed_signal_ids": event.consumed_signal_ids,
+        "decisions": [
+            {
+                "signal_id": d.signal_id,
+                "ticker": d.ticker,
+                "decision": d.decision,
+                "reason": d.reason,
+                "final_weight": d.final_weight,
+            }
+            for d in event.decisions
+        ],
+        "policy_version": event.policy_version,
+        "disclaimer": event.disclaimer,
+    }
+    return out

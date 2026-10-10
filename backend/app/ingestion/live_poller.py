@@ -1,0 +1,81 @@
+"""Live ingestion orchestrator: poll free sources -> pipeline -> rebalancer.
+
+The primary data path (AGENTS.md "Data Influx"): pulls live news (GDELT), live
+social (StockTwits), and live quotes (yfinance), runs news/social through the
+NLP pipeline, and feeds resulting signals into the rebalancer. Provenance=live.
+
+Committed CSVs and the demo replay remain a labeled offline fallback only.
+Every fetch is best-effort: a source that fails degrades gracefully (that source
+contributes nothing this cycle) rather than fabricating data.
+"""
+
+from datetime import datetime, timezone
+
+from app.core.signal_contract import Provenance
+from app.ingestion.live_sources import (
+    fetch_gdelt_news,
+    fetch_index_symbols,
+    fetch_live_quotes,
+    fetch_stocktwits,
+)
+from app.nlp.pipeline import analyze_item
+from app.portfolio.demo import demo_portfolio
+from app.portfolio.rebalancer import Portfolio, RebalanceResult, rebalance
+
+DEFAULT_NEWS_QUERY = "apple OR microsoft OR jpmorgan OR pfizer OR exxon"
+SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM")  # subset to keep poll weight low
+
+
+def poll_live(
+    portfolio: Portfolio | None = None,
+    news_query: str = DEFAULT_NEWS_QUERY,
+    sentiment_backend: str = "lexicon",
+) -> dict:
+    """One live ingestion cycle across all three free sources.
+
+    Returns {signals, decision_event, quotes, source_errors}. Never raises on a
+    single-source failure; records it in source_errors instead.
+    """
+    now = datetime.now(timezone.utc)
+    portfolio = portfolio or demo_portfolio()
+    signals = []
+    source_errors: dict[str, str] = {}
+
+    # Live news (GDELT)
+    try:
+        for item in fetch_gdelt_news(news_query, max_records=10):
+            signals.extend(
+                analyze_item(item, provenance=Provenance.live.value,
+                             sentiment_backend=sentiment_backend)
+            )
+    except Exception as exc:  # degrade gracefully, never fabricate
+        source_errors["news"] = f"{type(exc).__name__}: {exc}"
+
+    # Live social (StockTwits) — one shared item per symbol's stream
+    for sym in SOCIAL_SYMBOLS:
+        try:
+            for item in fetch_stocktwits(sym, limit=10):
+                signals.extend(
+                    analyze_item(item, provenance=Provenance.live.value,
+                                 sentiment_backend=sentiment_backend)
+                )
+        except Exception as exc:
+            source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
+
+    # Feed signals into the rebalancer (fresh signals only, at event time `now`).
+    result: RebalanceResult = rebalance(portfolio, signals, now)
+
+    # Live quotes (yfinance) — independent of the signal path, for price panels.
+    try:
+        quotes = fetch_live_quotes(fetch_index_symbols())
+    except Exception as exc:
+        quotes = {}
+        source_errors["quotes"] = f"{type(exc).__name__}: {exc}"
+
+    return {
+        "signals": signals,
+        "decision_event": result,
+        "quotes": quotes,
+        "source_errors": source_errors,
+        "polled_at": now.isoformat(),
+    }
