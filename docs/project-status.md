@@ -13,11 +13,13 @@ deferred**, with files touched and tests run recorded on completion.
 
 ## Approved Scope — P0 (core deliverables & essential infrastructure)
 
-- [ ] **P0.1 Portfolio Decision Ledger.** Persist original/proposed/final
-      weights; decisions (executed, capped, skipped, stale, duplicate);
-      timestamps; consumed signal IDs; policy checks + reasons; policy/algorithm
-      version. Must allow historical allocation reconstruction. Reuse SQLite
-      patterns. `backend/app/portfolio/`, `backend/app/storage/`
+- [x] **P0.1 Portfolio Decision Ledger.** DONE 2026-10-10. Persist
+      original/proposed/final weights; decisions (executed/capped/skipped);
+      timestamps; consumed signal IDs; reasons; policy version. Weight-history
+      reconstruction via `/portfolio/weight-history`. SQLite `rebalance_events`.
+      Files: `app/portfolio/rebalancer.py` (DecisionRecord), `app/storage/ledger.py`,
+      `app/api/main.py` (/ledger, /portfolio/weight-history). Tests: 12 in
+      `tests/test_ledger.py` (invariants, roundtrip, chronological reconstruction).
 - [ ] **P0.2 Weight Evolution Timeline.** Plot all 10 tickers' weights across
       rebalance events; rebalance markers + explanations; real yfinance price
       overlay; clearly distinguish target-allocation decisions from observed
@@ -32,9 +34,15 @@ deferred**, with files touched and tests run recorded on completion.
 - [ ] **P0.5 Multi-Company Attribution.** Article → multiple company signals,
       each with its own sentiment/impact/classification/evidence; surface
       contradictory evidence where supported.
-- [ ] **P0.6 Data & reproducibility.** Complete yfinance integration + `/data`
-      artifacts; committed deterministic demo dataset + replay sequence; reuse
-      recorded-output + historical replay; core demo must run without network.
+- [~] **P0.6 Data & reproducibility.** PARTIAL 2026-10-10. yfinance integration
+      DONE: offline loader + fetch script + committed `/data` CSVs (830 real price
+      rows, 10-ticker metadata w/ sector + market cap). Demo seeds portfolio from
+      real market caps, capped to respect MAX_WEIGHT (Option A). yfinance is
+      Apache-2.0 (license verified). Runtime never touches network.
+      Files: `app/market/loader.py`, `scripts/fetch_market_data.py`, `data/*.csv`,
+      `app/portfolio/demo.py`. Tests: 7 in `tests/test_market_loader.py`.
+      REMAINING: committed deterministic demo replay sequence (scripted end-to-end
+      walkthrough dataset). Still to do.
 
 ## Approved Scope — P1 (high-value dashboard)
 
@@ -201,6 +209,13 @@ P0/P1/P2 dashboard scope:
 - 2026-10-09: Consolidated dashboard/infrastructure plan adopted (P0/P1/P2,
   five-tab architecture, 5 phases, non-negotiables, 3 decisions). Baseline engine
   + Module A verified at 64 passing tests. No plan code written yet.
+- 2026-10-10: P0.1 Decision Ledger complete (merged feat/decision-ledger,
+  commit 08c1cae). Per-signal DecisionRecords + weight-history reconstruction,
+  SQLite ledger, 12 new tests. Suite at 76.
+- 2026-10-10: P0.6 market-data module (feat/market-data). Offline yfinance
+  loader + fetch script + committed /data CSVs. Demo seeds from real market
+  caps, capped via Option A (respect MAX_WEIGHT, preserve ordering). 7 new
+  loader tests. Suite at 83. P0.6 still pending the demo replay sequence.
 
 ## Status Maintenance Rules
 

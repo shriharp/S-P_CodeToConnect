@@ -1,0 +1,11 @@
+ticker,company_id,sector,market_cap
+AAPL,apple,Technology,4912984968982
+MSFT,microsoft,Technology,3973186680256
+JPM,jpmorgan,Financials,885149395114
+XOM,exxon,Energy,694666416561
+PG,procter-gamble,Consumer Staples,351257723820
+KO,coca-cola,Consumer Staples,378839473976
+JNJ,jnj,Healthcare,630043895083
+WMT,walmart,Consumer Discretionary,883422631829
+CVX,chevron,Energy,415820653642
+PFE,pfizer,Healthcare,161186773011

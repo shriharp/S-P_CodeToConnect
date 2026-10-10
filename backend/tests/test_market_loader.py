@@ -65,3 +65,13 @@ def test_demo_portfolio_seeds_from_market_caps():
     assert set(p.weights) == {m.ticker for m in load_metadata()}
     # Market-cap weighting puts the largest company (AAPL) at the top.
     assert max(p.weights, key=p.weights.get) == "AAPL"
+
+
+@pytest.mark.skipif(not HAS_DATA, reason="/data CSVs not populated")
+def test_demo_portfolio_seed_respects_cap():
+    from app.portfolio.rebalancer import MAX_WEIGHT
+
+    p = demo_portfolio()
+    # Cap-aware seeding: no opening position exceeds the policy cap.
+    assert max(p.weights.values()) <= MAX_WEIGHT + 1e-9
+    assert all(v >= 0 for v in p.weights.values())

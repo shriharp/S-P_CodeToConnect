@@ -1,4 +1,9 @@
-"""Fixed 10-stock mock index used for demonstrations (not an actual index)."""
+"""Mock index used for demonstrations (not an actual index).
+
+Initial weights are seeded from real market caps (committed /data CSVs) when
+available, so baseline allocation reflects genuine company scale. Falls back to
+a documented static allocation when /data is absent — never fabricated.
+"""
 
 from datetime import datetime
 
@@ -12,6 +17,7 @@ from app.core.signal_contract import (
 )
 from app.portfolio.rebalancer import Portfolio
 
+# Static fallback weights (used only when /data/market CSVs are missing).
 MOCK_INDEX = {
     "AAPL": 0.12,
     "MSFT": 0.12,
@@ -27,7 +33,23 @@ MOCK_INDEX = {
 
 
 def demo_portfolio() -> Portfolio:
-    return Portfolio(weights=dict(MOCK_INDEX), name="demo-mock-index")
+    """Portfolio seeded from real market caps, capped to comply with policy.
+
+    Market-cap weights are passed through the same bounded normalization the
+    rebalancer uses, so the seed respects MAX_WEIGHT and no oversized opening
+    position triggers an artificial first-rebalance correction. Relative
+    market-cap ordering is preserved (largest company still largest weight).
+    Falls back to a documented static allocation when /data is absent.
+    """
+    try:
+        from app.market.loader import market_cap_weights
+        from app.portfolio.rebalancer import MAX_WEIGHT, _bounded_normalize
+
+        seeded = _bounded_normalize(market_cap_weights(), MAX_WEIGHT)
+        return Portfolio(weights=seeded, name="demo-mock-index")
+    except (FileNotFoundError, ValueError):
+        # /data not populated (e.g. fresh clone before fetch) -> static fallback.
+        return Portfolio(weights=dict(MOCK_INDEX), name="demo-mock-index")
 
 
 def demo_signal(
