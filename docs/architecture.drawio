@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net" modified="2026-10-10T00:00:00.000Z" agent="risk-engine" version="24.0.0" type="device">
+  <diagram id="risk-engine-arch" name="Risk Engine Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== Live Data Sources (free, keyless) ===== -->
+        <mxCell id="srcTitle" value="Live Data Sources (free, keyless)" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gdelt" value="GDELT&#10;(news)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="stocktwits" value="StockTwits&#10;(social)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="180" y="60" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="yfinance" value="yfinance&#10;(prices)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Ingestion ===== -->
+        <mxCell id="ingTitle" value="Ingestion" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="adapters" value="Source Adapters&#10;(news / social normalize)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="poller" value="Live Poller&#10;(re-poll dedup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="300" y="190" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== NLP Pipeline ===== -->
+        <mxCell id="nlpTitle" value="NLP Pipeline" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="entities" value="Entity Resolution&#10;(names + cashtags)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sentiment" value="Sentiment&#10;(lexicon / model)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="events" value="Event&#10;Classification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="340" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rubric" value="Impact Rubric&#10;(deterministic, abstains)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="contract" value="Signal Contract&#10;(Pydantic validation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="240" y="400" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Portfolio ===== -->
+        <mxCell id="pfTitle" value="Module A — Portfolio" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rebalancer" value="Rebalancer&#10;(caps, gates, 100% norm)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="530" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ledger" value="Decision Ledger&#10;(SQLite: pre/post/why)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="280" y="530" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Storage ===== -->
+        <mxCell id="store" value="Signal Store&#10;(SQLite: signals + dedup)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="520" y="320" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="csv" value="Offline Fallback&#10;(committed CSVs + replay)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="520" y="400" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== API ===== -->
+        <mxCell id="api" value="FastAPI&#10;/analyze /ingest /live/poll /rebalance /simulate /ledger /signals" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="190" width="220" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Frontend ===== -->
+        <mxCell id="feTitle" value="React Dashboard (5 tabs)" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="160" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="overview" value="Overview&#10;(timeline + storyboard)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="190" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="signalstab" value="Signals&#10;(HOT live feed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="190" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="portfolio" value="Portfolio&#10;(ledger, holdings)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="255" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="lab" value="Strategy Lab&#10;(analyzer, simulate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="255" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="system" value="System&#10;(status, provenance)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="320" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Edges ===== -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="gdelt" target="adapters"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="stocktwits" target="adapters"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="adapters" target="poller"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="poller" target="entities"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="entities" target="sentiment"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="sentiment" target="events"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="events" target="rubric"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="rubric" target="contract"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="contract" target="rebalancer"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="rebalancer" target="ledger"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="contract" target="store"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="yfinance" target="api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="ledger" target="api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="store" target="api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="csv" target="api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="api" target="overview"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="api" target="signalstab"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="api" target="portfolio"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="api" target="lab"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="api" target="system"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ===== Legend ===== -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="440" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="legTitle" value="Legend" style="text;html=1;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="55" y="648" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="55" y="675" width="24" height="16" as="geometry" /></mxCell>
+        <mxCell id="leg1t" value="Data source / frontend" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="85" y="673" width="160" height="20" as="geometry" /></mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="55" y="700" width="24" height="16" as="geometry" /></mxCell>
+        <mxCell id="leg2t" value="Ingestion" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="85" y="698" width="160" height="20" as="geometry" /></mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="55" y="725" width="24" height="16" as="geometry" /></mxCell>
+        <mxCell id="leg3t" value="NLP analysis" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="85" y="723" width="160" height="20" as="geometry" /></mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="250" y="675" width="24" height="16" as="geometry" /></mxCell>
+        <mxCell id="leg4t" value="Portfolio (Module A)" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="280" y="673" width="160" height="20" as="geometry" /></mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="250" y="700" width="24" height="16" as="geometry" /></mxCell>
+        <mxCell id="leg5t" value="Storage" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="280" y="698" width="160" height="20" as="geometry" /></mxCell>
+        <mxCell id="leg6" value="" style="endArrow=none;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="leg6t" value="Dashed = offline fallback path" style="text;html=1;align=left;" vertex="1" parent="1"><mxGeometry x="280" y="723" width="180" height="20" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

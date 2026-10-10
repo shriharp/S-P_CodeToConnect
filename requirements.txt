@@ -1,0 +1,15 @@
+# Runtime dependencies (backend)
+fastapi==0.143.0
+pydantic==2.14.0
+uvicorn==0.54.0
+yfinance==1.7.0
+
+# Optional: model-backed sentiment backend (Apache-2.0 checkpoint).
+# CPU-only; ~420 MB peak RSS at inference. The lexicon backend is the default
+# and needs none of these. See docs/model-evaluation.md.
+# torch==2.14.1
+# transformers==5.19.0
+
+# Development / test
+pytest==9.1.1
+httpx==0.28.1
