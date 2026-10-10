@@ -15,58 +15,112 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.nlp.eval_cases import EVAL_CASES
 from app.nlp.sentiment import score_sentiment as lexicon_score
 
+CLASSES = (-1, 0, 1)
+_cache: dict | None = None
+
 
 def _sign(v):
     return (v > 0) - (v < 0)
 
 
-def bench_lexicon():
-    abstain, correct = 0, 0
+def _run_backend(score_fn) -> dict:
+    """Run one backend over EVAL_CASES; return measured metrics + confusion.
+
+    Abstentions (None) are counted separately and excluded from the confusion
+    matrix — an abstention is not a misclassification, it's a refusal to score.
+    """
+    n = len(EVAL_CASES)
+    correct = abstain = 0
+    # confusion[gold][pred] over scored cases only
+    confusion = {g: {p: 0 for p in CLASSES} for g in CLASSES}
+    per_class_total = {g: 0 for g in CLASSES}
+    per_class_correct = {g: 0 for g in CLASSES}
+
     t0 = time.perf_counter()
     for text, gold in EVAL_CASES:
-        score = lexicon_score(text)[0]
+        score = score_fn(text)
+        per_class_total[gold] += 1
         if score is None:
             abstain += 1
             continue
-        if _sign(score) == gold:
+        pred = _sign(score)
+        confusion[gold][pred] += 1
+        if pred == gold:
             correct += 1
-    latency = (time.perf_counter() - t0) / len(EVAL_CASES) * 1000
-    return correct, abstain, latency
+            per_class_correct[gold] += 1
+    latency_ms = (time.perf_counter() - t0) / n * 1000
+
+    scored = n - abstain
+    return {
+        "total": n,
+        "scored": scored,
+        "abstain": abstain,
+        "correct": correct,
+        "accuracy": round(correct / scored, 4) if scored else None,
+        "confusion": confusion,  # confusion[gold][pred]
+        "per_class_recall": {
+            str(g): round(per_class_correct[g] / per_class_total[g], 4)
+            if per_class_total[g]
+            else None
+            for g in CLASSES
+        },
+        "latency_ms_per_item": round(latency_ms, 2),
+    }
 
 
-def bench_model():
-    import resource
+def run_benchmark(force_refresh: bool = False) -> dict:
+    """Structured benchmark of lexicon vs model. Measured, cached after first run.
 
-    from app.nlp.sentiment_model import score_sentiment_model
+    The model backend is only included if transformers is installed; otherwise
+    model metrics are None with a clear 'unavailable' reason (never fabricated).
+    """
+    global _cache
+    if _cache is not None and not force_refresh:
+        return _cache
 
-    abstain, correct = 0, 0
-    score_sentiment_model("warmup loading model")  # exclude load time
-    t0 = time.perf_counter()
-    for text, gold in EVAL_CASES:
-        score = score_sentiment_model(text)
-        if score is None:
-            abstain += 1
-            continue
-        if _sign(score) == gold:
-            correct += 1
-    latency = (time.perf_counter() - t0) / len(EVAL_CASES) * 1000
-    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    peak_mb = rss / (1024 * 1024) if sys.platform == "darwin" else rss / 1024
-    return correct, abstain, latency, peak_mb
+    lexicon = _run_backend(lambda t: lexicon_score(t)[0])
+
+    model = None
+    model_reason = None
+    if __import__("importlib.util", fromlist=["find_spec"]).find_spec("transformers"):
+        from app.nlp.sentiment_model import score_sentiment_model
+
+        score_sentiment_model("warmup")  # exclude one-time model load from latency
+        model = _run_backend(score_sentiment_model)
+    else:
+        model_reason = "transformers not installed (model backend unavailable)"
+
+    _cache = {
+        "hardware": f"{platform.machine()} {platform.system()} {platform.release()}",
+        "cpus": os.cpu_count(),
+        "sample_size": len(EVAL_CASES),
+        "methodology": (
+            "Accuracy over scored cases only; abstentions counted separately. "
+            "Confusion matrix excludes abstentions. FIXTURES ARE SYNTHETIC dev "
+            "labels — not a real-world accuracy claim."
+        ),
+        "lexicon": lexicon,
+        "model": model,
+        "model_unavailable_reason": model_reason,
+    }
+    return _cache
 
 
 def main():
-    n = len(EVAL_CASES)
-    print(f"hardware: {platform.machine()} {platform.processor()}")
-    print(f"os: {platform.system()} {platform.release()}")
-    print(f"cpus: {os.cpu_count()}  cases: {n}")
+    data = run_benchmark(force_refresh=True)
+    n = data["sample_size"]
+    print(f"hardware: {data['hardware']}")
+    print(f"cpus: {data['cpus']}  cases: {n}")
     print("-" * 60)
-
-    c, a, ms = bench_lexicon()
-    print(f"lexicon  : acc {c}/{n}  abstain {a}  latency {ms:.1f} ms/item")
-
-    c, a, ms, mb = bench_model()
-    print(f"model    : acc {c}/{n}  abstain {a}  latency {ms:.1f} ms/item  peakRSS {mb:.0f} MB")
+    for name in ("lexicon", "model"):
+        b = data[name]
+        if b is None:
+            print(f"{name:9s}: {data['model_unavailable_reason']}")
+            continue
+        print(
+            f"{name:9s}: acc {b['correct']}/{b['scored']}  "
+            f"abstain {b['abstain']}  latency {b['latency_ms_per_item']} ms/item"
+        )
 
 
 if __name__ == "__main__":

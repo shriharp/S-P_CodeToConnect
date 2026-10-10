@@ -296,6 +296,20 @@ def portfolio_performance(ledger: RebalanceStore = Depends(get_ledger)) -> dict:
     return compute_performance(ledger.weight_history())
 
 
+@app.get("/benchmark/sentiment")
+def benchmark_sentiment(refresh: bool = False) -> dict:
+    """Measured lexicon-vs-model sentiment benchmark (P1.5).
+
+    Runs on the labeled dev fixtures; returns accuracy, confusion matrix,
+    per-class recall, and latency for each backend. Measured, cached — never
+    hardcoded. Fixtures are synthetic dev labels, NOT a real-world accuracy
+    claim. Model metrics are None (with a reason) if transformers is absent.
+    """
+    from benchmarks.sentiment_benchmark import run_benchmark
+
+    return run_benchmark(force_refresh=refresh)
+
+
 @app.get("/market/prices")
 def market_prices(tickers: str | None = None) -> dict:
     """Real close-price history from committed /data CSVs (offline, no network).

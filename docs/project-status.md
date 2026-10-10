@@ -76,9 +76,15 @@ deferred**, with files touched and tests run recorded on completion.
       a cost assumption; omitted rather than invented). 5 tests in
       `tests/test_performance.py`. `app/portfolio/performance.py`,
       `backend/app/api/main.py`, `frontend/src/views/Portfolio.jsx`.
-- [ ] **P1.5 Model vs Lexicon Comparison.** Preserve benchmark; add confusion
-      matrix, per-category results, latency comparison; expose methodology + sample
-      sizes; measured results only, no hardcoded illustrative values.
+- [x] **P1.5 Model vs Lexicon Comparison.** DONE 2026-10-10. Restructured the
+      benchmark harness to `run_benchmark()` returning measured accuracy,
+      confusion matrix, per-class recall, and latency per backend (abstentions
+      counted separately, excluded from confusion). `GET /benchmark/sentiment`
+      serves it (cached; `?refresh=true` re-runs). Strategy Lab panel shows both
+      backends side-by-side with methodology + sample size. Measured live, never
+      hardcoded; model metrics None + reason if transformers absent. Fixtures
+      remain synthetic dev labels (noted in UI). `benchmarks/sentiment_benchmark.py`,
+      `backend/app/api/main.py`, `frontend/src/views/StrategyLab.jsx`.
 
 ## Approved Scope — P2 (selectively after P0/P1)
 
