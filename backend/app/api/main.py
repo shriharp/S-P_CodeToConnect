@@ -194,6 +194,28 @@ def rebalance_portfolio(
     return result
 
 
+@app.post("/simulate", response_model=RebalanceResult)
+def simulate(req: RebalanceRequest) -> RebalanceResult:
+    """Read-only what-if simulation: real rebalancer logic, NO persistence.
+
+    Runs the same policy engine as /rebalance (caps, gates, renormalization) but
+    writes nothing to the ledger or weight-history, so experiments never mutate
+    the audited demo portfolio state. Non-persistent by design.
+    """
+    now = datetime.now(timezone.utc)
+    signals = [
+        demo_signal(
+            ticker=item.ticker.upper(),
+            sentiment=item.sentiment_score,
+            text=item.text,
+            source_item_id=item.source_item_id,
+            ingested_at=now,
+        )
+        for item in req.items
+    ]
+    return rebalance(demo_portfolio(), signals, now)
+
+
 @app.get("/ledger", response_model=list[dict])
 def list_ledger(
     limit: int = 100, ledger: RebalanceStore = Depends(get_ledger)
