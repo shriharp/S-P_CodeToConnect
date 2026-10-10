@@ -176,16 +176,22 @@ Preserve every existing AGENTS.md invariant unless explicitly changed:
 
 All mandatory per `docs/problem-statement.md`, tracked but not part of the
 P0/P1/P2 dashboard scope:
-- [ ] LICENSE (MIT) at repo root.
-- [ ] README rewritten to the mandatory template (candidate name, college email,
-      demo video link, sections 1-5).
-- [ ] Presentation deck (5-7 slides) at `docs/presentation.pdf`.
-- [ ] Demo video (10-min unlisted YouTube), link in README.
-- [ ] Architecture diagram `docs/architecture.png`.
-- [ ] Committed `/data` folder (also serves P0.6).
-- [ ] requirements.txt at root (or documented pyproject alternative).
-- [ ] Repo public, named `<college>-<candidate-name>-hackathon`.
-- [ ] Root-level run command in README Quickstart.
+- [x] LICENSE (MIT) at repo root. DONE 2026-10-10 (placeholder copyright name —
+      user must fill in). `LICENSE`
+- [x] README rewritten to the mandatory template (candidate name, college email,
+      demo video link, sections 1-5). DONE 2026-10-10 — placeholders `[Your Full
+      Name]`, `[your_id@college.ac.in]`, `[Your College Name]`, demo/deck links
+      must be filled in by user. `README.md`
+- [ ] Presentation deck (5-7 slides) at `docs/presentation.pdf`. TODO (user).
+- [ ] Demo video (10-min unlisted YouTube), link in README. TODO (user).
+- [x] Architecture diagram. DONE 2026-10-10 as editable `docs/architecture.drawio`
+      (per user request, not a PNG; open in diagrams.net; export PNG if the form
+      requires one). README embeds it.
+- [x] Committed `/data` folder. DONE (market CSVs + demo_news.jsonl).
+- [x] requirements.txt at root. DONE 2026-10-10 (pinned; torch/transformers
+      commented as optional model extras). `requirements.txt`
+- [ ] Repo public, named `<college>-<candidate-name>-hackathon`. TODO (user).
+- [x] Root-level run command in README Quickstart. DONE (in README section 4).
 
 ## Known Limitations (current)
 

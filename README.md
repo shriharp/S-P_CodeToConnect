@@ -1,78 +1,116 @@
-# Risk Engine
+# AI/NLP Risk Engine - S&P Global & Crisil Campus Hackathon
 
-Submission for S&P Global and CRISIL's Code to Connect 2026 hackathon.
+**Candidate Name:** Shrihar Pande
+**College Email ID:** shrihar.mitmpl2023@learner.manipal.edu
+**College / Campus:** MIT, Manipal
+**Demo Video Link:** tbd
+**Slide Deck Link (if hosted externally):** tbd
 
-An AI/NLP financial risk engine: financial news and social text become
-company-specific, explainable risk signals, which drive a transparent mock-index
-rebalancing demo (Module A).
+## 1. Project Overview / Problem Statement & Approach
 
-## Pipeline
+Financial risk teams need to turn unstructured text — news headlines and social
+posts — into structured, actionable risk signals, then demonstrate a practical
+use of that intelligence. This project builds a unified AI/NLP Risk Engine that
+does exactly that, and applies it through a tactical mock-index rebalancer
+(Module A).
 
-1. Normalize text and source metadata (news or social adapters).
-2. Classify the primary event and company-specific sentiment (lightweight NLP).
-3. Score financial impact deterministically, with abstention when evidence is
-   insufficient (null, never a fabricated score).
-4. Validate against the signal contract (bounds, null-versus-neutral, evidence
-   membership, timestamps, quality-flag consistency).
-5. Apply Module A's portfolio policy: sentiment-direction adjustments, position
-  caps, freshness and duplicate-event gates.
+The approach is a modular pipeline. Live text from free, keyless sources (GDELT
+for news, StockTwits for social) is normalized, then run through a hybrid NLP
+layer that resolves the affected company (names and cashtags), scores
+company-specific sentiment, classifies the event type, and computes a financial
+impact score with a deterministic rubric that abstains when evidence is thin.
+Each result is validated against a strict signal contract: scores have defined
+bounds, unknown is never conflated with neutral, and every claim must be backed
+by an exact excerpt from the source text.
 
-Every signal carries exact evidence excerpts from the retained source text,
-provenance labels (live / replay / synthetic), and quality flags. Missing
-scores are null — unknown is not neutral.
+Those signals then drive Module A: a transparent 10-stock mock index whose
+weights move with sentiment, subject to position caps, freshness and
+duplicate-event gates, and always renormalized to 100%. Every rebalance is
+written to an auditable decision ledger recording the original and final weight,
+the decision, and the reason — so any change on the dashboard is traceable back
+to the headline that caused it. The system is CPU-first and runs entirely on
+free data; a deterministic replay path keeps demos reproducible without a network.
 
-## Layout
+## 2. Architecture & Tech Stack
 
-```
-backend/app/core      signal contract (Pydantic)
-backend/app/nlp       sentiment, event classification, pipeline
-backend/app/impact    deterministic impact rubric
-backend/app/ingestion news and social source adapters
-backend/app/replay    recorded-output replay
-backend/app/portfolio Module A rebalancer and demo fixtures
-backend/app/api       FastAPI routes
-backend/tests         pytest suite (49 tests)
-frontend/             React dashboard (Vite)
-docs/                 architecture, contract, rubric, evaluation, submission
-```
+![Architecture](docs/architecture.drawio)
 
-## Run
+Editable diagram: `docs/architecture.drawio` (open with diagrams.net).
 
-Backend (Python 3.11+):
+**Data flow:** live sources → ingestion adapters → NLP pipeline (entity
+resolution, sentiment, event, impact rubric) → signal contract validation →
+Module A rebalancer → decision ledger → FastAPI → React dashboard.
 
-```
+**Backend:** FastAPI + Pydantic (validation), SQLite (signal store + decision
+ledger), yfinance (market data). NLP is a hybrid of a lightweight lexicon layer
+(default) and an opt-in DistilRoBERTa financial sentiment model (Apache-2.0,
+CPU-viable, ~27 ms/item).
+
+**Frontend:** React (Vite), five tabs — Overview (weight timeline + causal
+storyboard), Signals (hot-ranked live feed), Portfolio (ledger, holdings),
+Strategy Lab (article analyzer + read-only what-if simulator), System (status,
+provenance).
+
+**Key design choices:** deterministic impact scoring (a model never sets the
+final impact number), explicit provenance labels (live / replay / synthetic) on
+every signal, and a modular layout so the NLP layer, persistence, and portfolio
+policy can each be extended independently.
+
+## 3. Dataset Used
+
+- **News:** GDELT Project DOC 2.0 API (free, no key) — live global news.
+- **Social media:** StockTwits stream API (free, no key) — live posts with
+  symbol context.
+- **Market prices:** yfinance (free, no key) — live quotes and history.
+- **Entity registry:** a curated, hand-authored alias table for the 10 mock-index
+  companies (publicly known large caps). Committed in the repo.
+
+All data is either live from the free sources above or synthetic fixtures clearly
+labeled as such in the UI. No proprietary data is used. Assumptions: social posts
+are short and often non-directional (the engine abstains rather than guessing);
+market-cap-based seed weights are used for the initial mock allocation.
+
+## 4. Quickstart & Installation
+
+Runtime: Python 3.11+ and Node 18+ on macOS/Linux/Windows.
+
+```bash
+git clone <your-repo-url>
+cd <repo-folder>
+
+# Backend
 cd backend
-python -m venv .venv && .venv/bin/pip install -e ".[dev]"
+python -m venv .venv
+.venv/bin/pip install -r ../requirements.txt          # or: pip install -e ".[dev]"
 .venv/bin/python -m uvicorn app.api.main:app --port 8000
-```
 
-Frontend (Node 18+):
-
-```
+# Frontend (in a second terminal)
 cd frontend
-npm install --include=dev
+npm install
 npm run dev
 ```
 
 Open http://localhost:5173 — the Vite dev server proxies `/api` to the backend.
 
-## Test
+Run tests: `cd backend && .venv/bin/python -m pytest`
 
-```
-cd backend
-.venv/bin/python -m pytest
-```
+## 5. Key Results & Domain Impact
 
-## API
+The engine converts unstructured news and social text into structured,
+company-specific risk signals with sentiment, event category, an explainable
+impact score, and exact source evidence — validated against a strict contract
+that refuses to fabricate scores or evidence. Module A turns those signals into
+a transparent mock-index proposal where every weight change is capped, gated,
+and traceable in an auditable ledger back to the triggering headline.
 
-- `GET /health` — liveness.
-- `POST /analyze` — one text -> one company-specific signal.
-- `POST /ingest` — batch news/social items; optional recording.
-- `POST /replay` — serve recorded signals with no inference.
-- `POST /rebalance` — mock-index proposal from supplied signals.
+This matters because risk and portfolio decisions are only trustworthy when
+they are explainable and auditable. The system treats "unknown" as a real state
+(not neutral), abstains when evidence is insufficient, and labels data
+provenance throughout — the same discipline that separates a credible risk tool
+from a black-box sentiment score. It runs on free, CPU-first infrastructure, so
+it is reproducible without paid services or a GPU.
 
-## Demo Notes
+---
 
-Results are mock allocations for demonstration only — not investment advice or
-predictions. Synthetic fixtures and recorded replays are labeled in every
-response (provenance field).
+Mock allocations are for demonstration only — not investment advice or a
+prediction of future performance.
