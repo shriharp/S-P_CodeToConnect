@@ -34,3 +34,18 @@ def test_case_insensitive():
 def test_lookup_by_ticker():
     assert company_by_ticker("aapl").name == "Apple Inc."
     assert company_by_ticker("nope") is None
+
+
+def test_cashtag_resolves():
+    resolutions = resolve("$AAPL to the moon, loving $MSFT here")
+    assert {r.company.ticker for r in resolutions} == {"AAPL", "MSFT"}
+
+
+def test_cashtag_and_alias_mix_without_double_count():
+    resolutions = resolve("Apple and $JPM both look good")
+    assert {r.company.ticker for r in resolutions} == {"AAPL", "JPM"}
+
+
+def test_unknown_cashtag_ignored():
+    # $ZZZZ is not in the registry -> no resolution, no crash.
+    assert resolve("$ZZZZ nothing else here") == []
