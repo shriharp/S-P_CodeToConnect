@@ -5,10 +5,12 @@ scoring, then assembles a contract-validated signal.
 """
 
 from datetime import datetime, timezone
+import re
 
 from app.core.entities import resolve
 from app.core.signal_contract import (
     AnalysisStatus,
+    EventCategory,
     EvidenceSupports,
     Provenance,
     QualityFlag,
@@ -32,6 +34,7 @@ def analyze_item(
     provenance: str,
     source_item_id: str | None = None,
     sentiment_backend: str = "lexicon",
+    event_backend: str = "keyword",
     ingested_at: datetime | None = None,
 ) -> list[RiskSignal]:
     """Return one RiskSignal per resolved company in the source item.
@@ -45,6 +48,10 @@ def analyze_item(
     The model overrides the score only; evidence excerpts remain exact
     source substrings drawn from the lexicon cue layer.
 
+    event_backend: "keyword" (default, regex table) or "model" (zero-shot NLI
+    classifier). The model picks the category; evidence excerpts still come from
+    the retained source text (never fabricated).
+
     ingested_at: overrides the ingestion timestamp. Replay passes the item's
     published time so the freshness gate evaluates against event time, not
     wall-clock; live callers leave it None (defaults to now).
@@ -52,7 +59,26 @@ def analyze_item(
     item_id = source_item_id or item.external_id
     ingested_at = ingested_at or datetime.now(timezone.utc)
     now = datetime.now(timezone.utc)
-    event_category, event_excerpts = classify_event(item.text)
+    if event_backend == "model":
+        from app.nlp.event_model import classify_event_model
+        from app.nlp.events import EVENT_PATTERNS
+
+        event_key, _conf = classify_event_model(item.text)
+        try:
+            event_category = EventCategory[event_key]
+        except KeyError:
+            event_category = EventCategory.unknown
+        # Evidence still from the retained source text, never fabricated.
+        kw = [
+            p
+            for p in EVENT_PATTERNS.get(event_category, ())
+            if re.search(p, item.text.lower())
+        ]
+        event_excerpts = sentence_excerpts(item.text, kw, EvidenceSupports.event)
+        method_version_event = "zero-shot-nli-0.1"
+    else:
+        event_category, event_excerpts = classify_event(item.text)
+        method_version_event = None
     senti_score, senti_excerpts = score_sentiment(item.text)
     if sentiment_backend == "model":
         from app.nlp.sentiment_model import score_sentiment_model
@@ -66,6 +92,8 @@ def analyze_item(
         method_version = "distilroberta-fin-0.1"
     else:
         method_version = "lexicon-0.1+entities-0.1"
+    if method_version_event:
+        method_version = f"{method_version}+{method_version_event}"
 
     factors = rubric.extract_factors(item.text)
     impact_score = rubric.score(factors)
