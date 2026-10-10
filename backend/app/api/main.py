@@ -144,6 +144,55 @@ def signals_count(store: SignalStore = Depends(get_store)) -> dict:
     return {"count": store.count()}
 
 
+@app.get("/signals/overview")
+def signals_overview(store: SignalStore = Depends(get_store)) -> dict:
+    """Aggregate distributions over persisted signals (Market Risk Overview).
+
+    Descriptive counts only, computed from real stored signals — no fabricated
+    metrics. Nulls are counted, never imputed.
+    """
+    signals = store.list(limit=500)
+    n = len(signals)
+    event_counts: dict[str, int] = {}
+    provenance_counts: dict[str, int] = {}
+    impact_counts: dict[str, int] = {}
+    senti_vals: list[float] = []
+    impact_vals: list[int] = []
+    null_sentiment = 0
+    null_impact = 0
+    for s in signals:
+        event_counts[s.event_category.value] = event_counts.get(s.event_category.value, 0) + 1
+        provenance_counts[s.provenance.value] = provenance_counts.get(s.provenance.value, 0) + 1
+        if s.sentiment_score is None:
+            null_sentiment += 1
+        else:
+            senti_vals.append(s.sentiment_score)
+        if s.impact_score is None:
+            null_impact += 1
+        else:
+            impact_vals.append(s.impact_score)
+            impact_counts[str(s.impact_score)] = impact_counts.get(str(s.impact_score), 0) + 1
+    return {
+        "total": n,
+        "event_counts": dict(sorted(event_counts.items(), key=lambda kv: -kv[1])),
+        "provenance_counts": provenance_counts,
+        "impact_counts": dict(sorted(impact_counts.items(), key=lambda kv: int(kv[0]))),
+        "sentiment": {
+            "scored": len(senti_vals),
+            "null": null_sentiment,
+            "mean": round(sum(senti_vals) / len(senti_vals), 4) if senti_vals else None,
+            "positive": sum(1 for v in senti_vals if v > 0),
+            "negative": sum(1 for v in senti_vals if v < 0),
+            "neutral": sum(1 for v in senti_vals if v == 0),
+        },
+        "impact": {
+            "scored": len(impact_vals),
+            "null": null_impact,
+            "mean": round(sum(impact_vals) / len(impact_vals), 2) if impact_vals else None,
+        },
+    }
+
+
 @app.post("/replay", response_model=list[RiskSignal])
 def replay(req: ReplayRequest) -> list[RiskSignal]:
     """Serve recorded signals without running inference (mode: recorded replay)."""
