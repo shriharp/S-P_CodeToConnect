@@ -32,6 +32,7 @@ def analyze_item(
     provenance: str,
     source_item_id: str | None = None,
     sentiment_backend: str = "lexicon",
+    ingested_at: datetime | None = None,
 ) -> list[RiskSignal]:
     """Return one RiskSignal per resolved company in the source item.
 
@@ -43,9 +44,13 @@ def analyze_item(
     (DistilRoBERTa financial checkpoint; see docs/model-evaluation.md).
     The model overrides the score only; evidence excerpts remain exact
     source substrings drawn from the lexicon cue layer.
+
+    ingested_at: overrides the ingestion timestamp. Replay passes the item's
+    published time so the freshness gate evaluates against event time, not
+    wall-clock; live callers leave it None (defaults to now).
     """
     item_id = source_item_id or item.external_id
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = ingested_at or datetime.now(timezone.utc)
     now = datetime.now(timezone.utc)
     event_category, event_excerpts = classify_event(item.text)
     senti_score, senti_excerpts = score_sentiment(item.text)
