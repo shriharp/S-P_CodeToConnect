@@ -21,6 +21,7 @@ from app.core.signal_contract import (
 MAX_WEIGHT = 0.25
 DEFAULT_STEP = 0.02
 FRESHNESS_WINDOW = timedelta(hours=48)
+POLICY_VERSION = "module-a-v1"
 
 BLOCKING_FLAGS = {QualityFlag.analysis_error}
 
@@ -45,9 +46,27 @@ class Portfolio:
 
 
 @dataclass
+class DecisionRecord:
+    """Auditable per-signal decision. Never fabricated: fields the backend did
+    not compute are left None."""
+
+    signal_id: str
+    ticker: str | None
+    sentiment_score: float | None
+    original_weight: float | None  # None when ticker not in portfolio
+    proposed_weight: float | None  # weight after this signal, pre-normalization
+    final_weight: float | None  # weight after bounded normalization
+    decision: str  # "executed" | "capped" | "skipped"
+    reason: str | None  # skip/limit reason; None when fully executed
+
+
+@dataclass
 class RebalanceResult:
     proposed_weights: dict[str, float]
     adjustments: dict[str, float]
+    original_weights: dict[str, float] = field(default_factory=dict)
+    decisions: list[DecisionRecord] = field(default_factory=list)
+    policy_version: str = POLICY_VERSION
     consumed_signal_ids: list[str] = field(default_factory=list)
     skipped: list[dict[str, str]] = field(default_factory=list)
     disclaimer: str = DISCLAIMER
@@ -78,22 +97,40 @@ def rebalance(
     now: datetime,
     step: float = DEFAULT_STEP,
 ) -> RebalanceResult:
-    """Apply eligible signals to the portfolio; return a proposed allocation."""
+    """Apply eligible signals to the portfolio; return a proposed allocation.
+
+    Emits one DecisionRecord per input signal plus portfolio-level original and
+    final weights, so any historical allocation can be reconstructed and audited.
+    """
+    original = dict(portfolio.weights)
     weights = dict(portfolio.weights)
     consumed_events: set[str] = set()
-    adjustments: dict[str, float] = {}
     consumed: list[str] = []
     skipped: list[dict[str, str]] = []
+    decisions: list[DecisionRecord] = []
 
     for signal in signals:
         reason = _skip_reason(signal, now, consumed_events)
+        ticker = signal.ticker
+        original_weight = weights.get(ticker) if ticker else None
+
+        if reason is None and ticker not in weights:
+            reason = "not_in_portfolio"
+
         if reason is not None:
             skipped.append({"signal_id": signal.signal_id, "reason": reason})
-            continue
-
-        ticker = signal.ticker
-        if ticker not in weights:
-            skipped.append({"signal_id": signal.signal_id, "reason": "not_in_portfolio"})
+            decisions.append(
+                DecisionRecord(
+                    signal_id=signal.signal_id,
+                    ticker=ticker,
+                    sentiment_score=signal.sentiment_score,
+                    original_weight=original_weight,
+                    proposed_weight=None,
+                    final_weight=None,
+                    decision="skipped",
+                    reason=reason,
+                )
+            )
             continue
 
         delta = step * signal.sentiment_score
@@ -104,18 +141,43 @@ def rebalance(
         consumed.append(signal.signal_id)
         event_key = f"{signal.company_id}:{signal.event_category.value}:{signal.event_summary[:80]}"
         consumed_events.add(event_key)
+        decisions.append(
+            DecisionRecord(
+                signal_id=signal.signal_id,
+                ticker=ticker,
+                sentiment_score=signal.sentiment_score,
+                original_weight=original_weight,
+                proposed_weight=proposed,
+                final_weight=None,  # set after normalization
+                decision="executed",
+                reason=None,
+            )
+        )
 
     weights = _bounded_normalize(weights, MAX_WEIGHT)
 
-    initial = portfolio.weights
+    # Fill final weights and mark capped decisions (hit the MAX_WEIGHT ceiling).
+    for decision in decisions:
+        if decision.ticker in weights:
+            decision.final_weight = weights[decision.ticker]
+            if (
+                decision.decision == "executed"
+                and decision.final_weight >= MAX_WEIGHT - 1e-9
+            ):
+                decision.decision = "capped"
+                decision.reason = "reached_max_weight"
+
+    adjustments: dict[str, float] = {}
     for t, w in weights.items():
-        delta = w - initial[t]
+        delta = w - original[t]
         if abs(delta) > 1e-12:
-            adjustments[t] = adjustments.get(t, 0.0) + delta
+            adjustments[t] = delta
 
     return RebalanceResult(
         proposed_weights=weights,
         adjustments=adjustments,
+        original_weights=original,
+        decisions=decisions,
         consumed_signal_ids=consumed,
         skipped=skipped,
     )

@@ -10,14 +10,17 @@ from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
 from app.replay import recorder
+from app.storage.ledger import RebalanceStore, SqliteRebalanceStore, event_from_result
 from app.storage.signals import SignalStore, SqliteSignalStore
 
 app = FastAPI(title="Risk Engine API", version="0.1.0")
 
 RECORDINGS_DIR = Path(__file__).resolve().parents[2] / "recordings"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "signals.db"
+LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "ledger.db"
 
 _store: SignalStore | None = None
+_ledger: RebalanceStore | None = None
 
 
 def get_store() -> SignalStore:
@@ -27,12 +30,22 @@ def get_store() -> SignalStore:
     return _store
 
 
+def get_ledger() -> RebalanceStore:
+    global _ledger
+    if _ledger is None:
+        _ledger = SqliteRebalanceStore(LEDGER_PATH)
+    return _ledger
+
+
 @app.on_event("shutdown")
-def _close_store() -> None:
-    global _store
+def _close_stores() -> None:
+    global _store, _ledger
     if _store is not None:
         _store.close()
         _store = None
+    if _ledger is not None:
+        _ledger.close()
+        _ledger = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -155,11 +168,13 @@ class RebalanceRequest(BaseModel):
 
 
 @app.post("/rebalance", response_model=RebalanceResult)
-def rebalance_portfolio(req: RebalanceRequest) -> RebalanceResult:
+def rebalance_portfolio(
+    req: RebalanceRequest, ledger: RebalanceStore = Depends(get_ledger)
+) -> RebalanceResult:
     """Propose mock-index weights after consuming the supplied signals.
 
-    Signals are synthetic fixtures (provenance=synthetic) until ingestion
-    lands; live signals arrive through /analyze.
+    Persists an auditable decision-ledger event. Signals are synthetic fixtures
+    (provenance=synthetic); live signals arrive through /analyze + /ingest.
     """
     now = datetime.now(timezone.utc)
     signals = [
@@ -172,4 +187,26 @@ def rebalance_portfolio(req: RebalanceRequest) -> RebalanceResult:
         )
         for item in req.items
     ]
-    return rebalance(demo_portfolio(), signals, now)
+    result = rebalance(demo_portfolio(), signals, now)
+    event_id = f"rb-{now:%Y%m%dT%H%M%S%fZ}"
+    ledger.append(event_from_result(result, event_id, now))
+    return result
+
+
+@app.get("/ledger", response_model=list[dict])
+def list_ledger(
+    limit: int = 100, ledger: RebalanceStore = Depends(get_ledger)
+) -> list[dict]:
+    """Rebalance decision ledger, newest first (audit view)."""
+    from dataclasses import asdict
+
+    return [
+        {**asdict(e), "timestamp": e.timestamp.isoformat()}
+        for e in ledger.list_events(limit=min(limit, 500))
+    ]
+
+
+@app.get("/portfolio/weight-history")
+def weight_history(ledger: RebalanceStore = Depends(get_ledger)) -> list[dict]:
+    """Chronological per-ticker weight series for the evolution timeline."""
+    return ledger.weight_history()
