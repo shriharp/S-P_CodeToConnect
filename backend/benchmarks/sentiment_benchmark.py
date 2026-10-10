@@ -13,10 +13,75 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.nlp.eval_cases import EVAL_CASES
+from app.nlp.event_eval_cases import EVENT_EVAL_CASES
 from app.nlp.sentiment import score_sentiment as lexicon_score
 
 CLASSES = (-1, 0, 1)
 _cache: dict | None = None
+_event_cache: dict | None = None
+
+
+def _run_event_backend(classify_fn) -> dict:
+    """Run one event classifier over EVENT_EVAL_CASES; return measured accuracy.
+
+    Reports overall accuracy plus per-category recall. Abstentions (unknown)
+    are scored like any other prediction — an incorrect abstention is a miss.
+    """
+    correct = 0
+    per_total: dict[str, int] = {}
+    per_correct: dict[str, int] = {}
+    confusion: dict[str, dict[str, int]] = {}
+    for text, gold in EVENT_EVAL_CASES:
+        pred = classify_fn(text)
+        per_total[gold] = per_total.get(gold, 0) + 1
+        confusion.setdefault(gold, {})
+        confusion[gold][pred] = confusion[gold].get(pred, 0) + 1
+        if pred == gold:
+            correct += 1
+            per_correct[gold] = per_correct.get(gold, 0) + 1
+    n = len(EVENT_EVAL_CASES)
+    return {
+        "total": n,
+        "correct": correct,
+        "accuracy": round(correct / n, 4) if n else None,
+        "per_category_recall": {
+            k: round(per_correct.get(k, 0) / v, 4) for k, v in per_total.items()
+        },
+        "confusion": confusion,
+    }
+
+
+def run_event_benchmark(force_refresh: bool = False) -> dict:
+    """Measured keyword-vs-model event classification. Cached after first run."""
+    global _event_cache
+    if _event_cache is not None and not force_refresh:
+        return _event_cache
+
+    from app.nlp.events import classify_event
+
+    keyword = _run_event_backend(lambda t: classify_event(t)[0].name)
+
+    model = None
+    model_reason = None
+    if __import__("importlib.util", fromlist=["find_spec"]).find_spec("transformers"):
+        from app.nlp.event_model import classify_event_model
+
+        classify_event_model("warmup")  # exclude one-time model load
+        model = _run_event_backend(lambda t: classify_event_model(t)[0])
+    else:
+        model_reason = "transformers not installed (model backend unavailable)"
+
+    _event_cache = {
+        "sample_size": len(EVENT_EVAL_CASES),
+        "methodology": (
+            "Accuracy over all cases; abstentions (unknown) scored as predictions. "
+            "FIXTURES ARE SYNTHETIC dev labels — not a real-world accuracy claim."
+        ),
+        "keyword": keyword,
+        "model": model,
+        "model_unavailable_reason": model_reason,
+    }
+    return _event_cache
 
 
 def _sign(v):

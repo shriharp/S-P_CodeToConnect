@@ -30,6 +30,7 @@ def poll_live(
     portfolio: Portfolio | None = None,
     news_query: str = DEFAULT_NEWS_QUERY,
     sentiment_backend: str = "model",
+    event_backend: str = "keyword",
     seen_source=None,
 ) -> dict:
     """One live ingestion cycle across all three free sources.
@@ -59,6 +60,7 @@ def poll_live(
             out.extend(
                 analyze_item(item, provenance=Provenance.live.value,
                              sentiment_backend=sentiment_backend,
+                             event_backend=event_backend,
                              ingested_at=now)
             )
         return out
