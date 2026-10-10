@@ -1,5 +1,78 @@
 import React, { useEffect, useState } from 'react'
-import { getSectors, rebalancePortfolio } from '../api.js'
+import { getSectors, rebalancePortfolio, ingestItems } from '../api.js'
+
+function SentimentCell({ v }) {
+  if (v === null || v === undefined) return <span className="muted">null</span>
+  const cls = v < 0 ? 'neg' : v > 0 ? 'pos' : 'neu'
+  return <span className={`sent ${cls}`}>{v.toFixed(2)}</span>
+}
+
+// Manual article analyzer: ad-hoc text in, real pipeline signals out. Lives here
+// (not in the main feed) so the live feed stays purely source-driven.
+function ArticleAnalyzer() {
+  const [text, setText] = useState('')
+  const [signals, setSignals] = useState(null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const run = async () => {
+    setLoading(true)
+    setError(null)
+    setSignals(null)
+    try {
+      const out = await ingestItems({
+        source_type: 'news',
+        items: [{ id: `ui-${Date.now()}`, text }],
+        provenance: 'live',
+      })
+      setSignals(out)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Article Analyzer</h2>
+      <p className="muted">
+        Paste a headline or paragraph to see how the real pipeline scores it. Each resolved
+        company becomes its own signal. This is a manual sandbox — the main Signals feed is
+        fed by live source polling instead.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="e.g. Apple cut revenue guidance while Microsoft won a cloud contract."
+      />
+      <button className="action" onClick={run} disabled={loading || !text.trim()}>
+        {loading ? 'Analyzing…' : 'Analyze'}
+      </button>
+      {error && <div className="error">{error}</div>}
+      {signals && signals.length > 0 && (
+        <table>
+          <thead>
+            <tr><th>Company</th><th>Sent.</th><th>Event</th><th>Impact</th></tr>
+          </thead>
+          <tbody>
+            {signals.map((s) => (
+              <tr key={s.signal_id}>
+                <td>{s.company_name} ({s.ticker || 'unresolved'})</td>
+                <td><SentimentCell v={s.sentiment_score} /></td>
+                <td>{s.event_category}</td>
+                <td>{s.impact_score ?? 'null'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {signals && signals.length === 0 && (
+        <p className="muted">No signals produced.</p>
+      )}
+    </div>
+  )
+}
 
 // Strategy Lab (Phase 3 shell): a non-persistent what-if simulator. It calls the
 // real /rebalance endpoint (real policy logic, no frontend-only formula) but does
@@ -35,6 +108,7 @@ export default function StrategyLab() {
   }
 
   return (
+    <>
     <div className="panel">
       <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>What-If Simulator</h2>
       <p className="muted">
@@ -83,5 +157,7 @@ export default function StrategyLab() {
         </>
       )}
     </div>
+    <ArticleAnalyzer />
+    </>
   )
 }

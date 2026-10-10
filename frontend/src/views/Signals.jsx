@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignals, analyzeText, ingestItems } from '../api.js'
+import { getSignals, livePoll } from '../api.js'
 
 function SentimentCell({ v }) {
   if (v === null || v === undefined) return <span className="muted">null</span>
@@ -9,6 +9,17 @@ function SentimentCell({ v }) {
 
 function ProvenanceBadge({ p }) {
   return <span className={`prov prov-${p}`}>{p}</span>
+}
+
+// HOT score: blend recency decay with |sentiment| and impact so high-signal
+// items surface, not just the newest (which are often null/neutral).
+function hotScore(s, nowMs) {
+  const t = Date.parse(s.analyzed_at || s.published_at || 0)
+  const ageHours = Math.max(0, (nowMs - t) / 36e5)
+  const recency = Math.exp(-ageHours / 12) // half-ish life ~8h
+  const magnitude = Math.abs(s.sentiment_score ?? 0)
+  const impact = (s.impact_score ?? 0) / 10
+  return recency * (0.6 * magnitude + 0.4 * impact)
 }
 
 // Drill-down: evidence, classifications, and the signal's own fields exactly as
@@ -52,10 +63,10 @@ function SignalDetail({ signal }) {
 export default function Signals() {
   const [signals, setSignals] = useState([])
   const [selected, setSelected] = useState(null)
-  const [text, setText] = useState('')
-  const [analyzed, setAnalyzed] = useState(null)
   const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [polling, setPolling] = useState(false)
+  const [pollResult, setPollResult] = useState(null)
+  const [sort, setSort] = useState('hot') // 'hot' | 'newest'
 
   const load = async () => {
     try {
@@ -71,65 +82,63 @@ export default function Signals() {
     return () => clearInterval(t)
   }, [])
 
-  const run = async () => {
-    setLoading(true)
+  const poll = async () => {
+    setPolling(true)
     setError(null)
-    setAnalyzed(null)
+    setPollResult(null)
     try {
-      const out = await ingestItems({
-        source_type: 'news',
-        items: [{ id: `ui-${Date.now()}`, text }],
-        provenance: 'live',
-      })
-      setAnalyzed(out)
+      const out = await livePoll()
+      setPollResult(out)
       await load()
     } catch (e) {
       setError(e.message)
     } finally {
-      setLoading(false)
+      setPolling(false)
     }
   }
+
+  const nowMs = Date.now()
+  const ordered = [...signals].sort((a, b) =>
+    sort === 'hot' ? hotScore(b, nowMs) - hotScore(a, nowMs) : 0
+  )
+  const errKeys = pollResult ? Object.keys(pollResult.source_errors || {}) : []
 
   return (
     <div>
       <div className="panel">
-        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Article Analyzer</h2>
+        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Live Ingestion</h2>
         <p className="muted">
-          Paste a headline or paragraph. Each resolved company becomes its own signal
-          (multi-company attribution). Live inference, provenance: live.
+          Pulls live news (GDELT), social (StockTwits), and prices (yfinance) — all free sources —
+          and runs them through the engine (provenance: live). Use the manual text analyzer in
+          Strategy Lab for ad-hoc input.
         </p>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="e.g. Apple cut revenue guidance while Microsoft won a cloud contract."
-        />
-        <button className="action" onClick={run} disabled={loading || !text.trim()}>
-          {loading ? 'Analyzing…' : 'Analyze'}
+        <button className="action" onClick={poll} disabled={polling} style={{ marginTop: 0 }}>
+          {polling ? 'Polling live sources…' : 'Poll live sources now'}
         </button>
-        {error && <div className="error">{error}</div>}
-        {analyzed && analyzed.length > 1 && (
+        {pollResult && (
           <p className="muted">
-            → {analyzed.length} company-specific signals from this article.
+            {pollResult.signals.length} new signal(s) · {pollResult.decision_event.consumed_signal_ids.length} consumed
+            {errKeys.length > 0 && (
+              <> · degraded: {errKeys.join(', ')}</>
+            )}
           </p>
         )}
-        {analyzed && analyzed.length === 1 && (
-          <SignalDetail signal={analyzed[0]} />
-        )}
-        {analyzed && analyzed.length > 1 && (
-          <div className="split">
-            {analyzed.map((s) => (
-              <div key={s.signal_id} className="mini">
-                <strong>{s.company_name}</strong> <SentimentCell v={s.sentiment_score} />
-                <div className="muted">{s.event_category}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {error && <div className="error">{error}</div>}
       </div>
 
       <div className="panel">
-        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Live Signal Feed</h2>
-        <p className="muted">Persisted signal history, newest first (polls every 5s).</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Signal Feed</h2>
+          <div className="tabs" style={{ margin: 0 }}>
+            <button className={sort === 'hot' ? 'active' : ''} onClick={() => setSort('hot')}>Hot</button>
+            <button className={sort === 'newest' ? 'active' : ''} onClick={() => setSort('newest')}>Newest</button>
+          </div>
+        </div>
+        <p className="muted">
+          {sort === 'hot'
+            ? 'Ranked by impact × recency — high-signal items first, not just the newest.'
+            : 'Chronological, newest first.'} Polls every 5s.
+        </p>
         <table>
           <thead>
             <tr>
@@ -138,7 +147,7 @@ export default function Signals() {
             </tr>
           </thead>
           <tbody>
-            {signals.map((s) => (
+            {ordered.map((s) => (
               <tr key={s.signal_id} className="clickable" onClick={() => setSelected(s)}>
                 <td>{s.company_name}</td>
                 <td><SentimentCell v={s.sentiment_score} /></td>
@@ -148,8 +157,8 @@ export default function Signals() {
                 <td>{s.quality_flags.length ? s.quality_flags.join(', ') : '—'}</td>
               </tr>
             ))}
-            {signals.length === 0 && (
-              <tr><td colSpan={6} className="muted">No signals yet — run a replay or analyze an article.</td></tr>
+            {ordered.length === 0 && (
+              <tr><td colSpan={6} className="muted">No signals yet — poll live sources or run a replay.</td></tr>
             )}
           </tbody>
         </table>

@@ -39,3 +39,5 @@ export const getPrices = (tickers) =>
   get(`/market/prices${tickers ? `?tickers=${tickers}` : ''}`)
 export const getSectors = () => get('/market/sectors')
 export const runDemoReplay = () => post('/demo/replay', {})
+export const livePoll = (newsQuery) =>
+  post(`/live/poll${newsQuery ? `?news_query=${encodeURIComponent(newsQuery)}` : ''}`, {})

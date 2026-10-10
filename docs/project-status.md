@@ -34,17 +34,17 @@ deferred**, with files touched and tests run recorded on completion.
 - [ ] **P0.5 Multi-Company Attribution.** Article → multiple company signals,
       each with its own sentiment/impact/classification/evidence; surface
       contradictory evidence where supported.
-- [x] **P0.6 Data & reproducibility.** DONE 2026-10-10. yfinance integration:
-      offline loader + fetch script + committed `/data` CSVs (830 real price rows,
-      10-ticker metadata w/ sector + market cap). Demo seeds portfolio from real
-      market caps, capped to respect MAX_WEIGHT (Option A). Committed deterministic
-      demo replay sequence (`data/demo_news.jsonl`, 15 items) drives the full
-      pipeline + rebalancer offline with provenance=replay. yfinance Apache-2.0
-      (verified). Runtime never touches network.
-      Files: `app/market/loader.py`, `scripts/fetch_market_data.py`, `data/*.csv`,
-      `data/demo_news.jsonl`, `app/replay/demo_sequence.py`, `app/portfolio/demo.py`,
-      `app/nlp/pipeline.py` (ingested_at override for replay).
-      Tests: 7 market-loader + 8 demo-sequence.
+- [ ] **P0.6 Data & reproducibility — REVISION: LIVE-FIRST.** User directive
+      2026-10-10: all three influxes (news, social, stock) must be LIVE, not
+      committed snapshots. Free/keyless sources only (AGENTS.md "Data Influx"):
+      GDELT (news), StockTwits (social, carries Bullish/Bearish labels), yfinance
+      (live quotes). Committed CSVs + demo replay demoted to a clearly-labeled
+      offline FALLBACK, never primary. Frontend UX changes also required:
+      (a) surface HOT/highest-impact recent items, not just newest (lots of nulls
+      otherwise); (b) move manual article input into Strategy Lab only, not the
+      main Signals flow; (c) replay must visibly animate weight changes over time,
+      not look static. Old P0.6 (offline loader + CSVs + demo replay) is built and
+      still useful as the fallback path.
 
 ## Approved Scope — P1 (high-value dashboard)
 
@@ -224,6 +224,18 @@ P0/P1/P2 dashboard scope:
   replay freshness bug: analyze_item now accepts an ingested_at override so
   replay stamps signals with event time (live default unchanged). 8 new tests.
   Suite at 91. Phase 1 backend foundations now COMPLETE (P0.1 + P0.6).
+- 2026-10-10: Live-first pivot (user directive). AGENTS.md "Data Influx" section
+  added: all three influxes LIVE, free/keyless only (GDELT news, StockTwits
+  social, yfinance prices). feat/live-ingestion: live_sources.py + live_poller.py
+  + POST /live/poll, graceful degradation. feat/live-model-sentiment: live path
+  switched to the DistilRoBERTa model backend (lexicon abstained on short social
+  posts); added cashtag ($AAPL) resolution to entities.py — StockTwits resolves
+  now; fixed a live-poll timestamp-ordering bug (signals were stamped past the
+  rebalance clock and rejected as stale). Live poll verified: 8/32 signals
+  consumed, real weight adjustments, weights sum to 1.0. 3 new cashtag tests.
+  Suite at 99. REMAINING: GDELT news path still returns 429/JSON errors under
+  test rate-limiting — needs a clean-network confirmation; frontend UX changes
+  (HOT ranking, move manual input to Strategy Lab, animated replay) not started.
 
 ## Status Maintenance Rules
 
