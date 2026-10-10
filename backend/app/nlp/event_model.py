@@ -84,9 +84,16 @@ _ft_labels = None
 
 
 def finetuned_available() -> bool:
-    """True if a trained checkpoint exists on disk (else caller falls back)."""
+    """True if a trained checkpoint exists on disk AND transformers is importable.
+
+    Checking both means a base-requirements clone (no torch) or a clone with a
+    checkpoint but missing deps both degrade to hybrid/keyword instead of
+    crashing at inference time.
+    """
     from pathlib import Path
 
+    if importlib.util.find_spec("transformers") is None:
+        return False
     d = Path(__file__).resolve().parents[2] / "models" / "event_classifier"
     return (d / "config.json").exists()
 

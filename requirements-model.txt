@@ -1,0 +1,8 @@
+# Optional model backends (install on top of requirements.txt).
+# Enables the fine-tuned event classifier (default when available) and the
+# DistilRoBERTa financial sentiment backend. Apache-2.0-compatible checkpoints.
+# CPU-only; ~420 MB peak RSS at inference. Without these, the app runs entirely
+# on the keyword/lexicon layer (event classification degrades gracefully).
+# See docs/model-evaluation.md for measured accuracy of each backend.
+torch>=2.2
+transformers>=4.40

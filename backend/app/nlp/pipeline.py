@@ -33,7 +33,7 @@ def analyze_item(
     item: RawSourceItem,
     provenance: str,
     source_item_id: str | None = None,
-    sentiment_backend: str = "lexicon",
+    sentiment_backend: str = "model",
     event_backend: str = "finetuned",
     ingested_at: datetime | None = None,
 ) -> list[RiskSignal]:
@@ -43,10 +43,11 @@ def analyze_item(
     When no company resolves, a single unresolved signal is returned with
     quality flags (never a fabricated identity).
 
-    sentiment_backend: "lexicon" (default, no model download) or "model"
-    (DistilRoBERTa financial checkpoint; see docs/model-evaluation.md).
-    The model overrides the score only; evidence excerpts remain exact
-    source substrings drawn from the lexicon cue layer.
+    sentiment_backend: "model" (default — DistilRoBERTa financial checkpoint,
+    measurably better on real prose; falls back to "lexicon" if transformers is
+    absent) or "lexicon" (keyword cue matcher, no ML deps). The model overrides
+    the score only; evidence excerpts remain exact source substrings drawn from
+    the lexicon cue layer.
 
     event_backend: "finetuned" (default — DistilRoBERTa trained on the event
     taxonomy; falls back to "hybrid" if no checkpoint is on disk), "hybrid"
@@ -112,15 +113,19 @@ def analyze_item(
         method_version_event = None
     senti_score, senti_excerpts = score_sentiment(item.text)
     if sentiment_backend == "model":
-        from app.nlp.sentiment_model import score_sentiment_model
+        from app.nlp.sentiment_model import available, score_sentiment_model
 
-        model_score = score_sentiment_model(item.text)
-        if model_score is not None:
-            senti_score = model_score
-            senti_excerpts = sentence_excerpts(
-                item.text, _all_cues(), EvidenceSupports.sentiment
-            )
-        method_version = "distilroberta-fin-0.1"
+        if available():
+            model_score = score_sentiment_model(item.text)
+            if model_score is not None:
+                senti_score = model_score
+                senti_excerpts = sentence_excerpts(
+                    item.text, _all_cues(), EvidenceSupports.sentiment
+                )
+            method_version = "distilroberta-fin-0.1"
+        else:
+            # No transformers (base-requirements clone) -> lexicon fallback.
+            method_version = "lexicon-0.1+entities-0.1"
     else:
         method_version = "lexicon-0.1+entities-0.1"
     if method_version_event:

@@ -38,12 +38,13 @@ def test_evidence_excerpts_are_substrings():
 
 
 def test_no_cues_abstains():
-    sig = analyze(
-        "The meeting is on Tuesday.",
-        source_item_id="t-2",
-        provider="test",
+    # Lexicon-specific: abstains when no directional cue matches. Explicitly
+    # requests lexicon (model backend scores neutral text as 0.0, not None).
+    sig = analyze_item(
+        news_item("The meeting is on Tuesday."),
         provenance="synthetic",
-    )
+        sentiment_backend="lexicon",
+    )[0]
     assert sig.analysis_status is AnalysisStatus.abstained
     assert sig.sentiment_score is None
     assert sig.impact_score is None

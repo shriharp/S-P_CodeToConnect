@@ -230,6 +230,18 @@ P0/P1/P2 dashboard scope:
 - Recorded-output replay: `/ingest` record=true, then `/replay`.
 - Fresh historical replay: feed dated items through `/ingest` provenance=replay.
 
+## Fresh-clone robustness (2026-10-10)
+
+Verified a base-requirements clone (no torch/transformers) runs end-to-end:
+event_backend="finetuned" -> falls back to hybrid -> which now degrades to
+keyword-only when transformers is absent (was crashing with ImportError).
+Fixed in `events.py` (classify_event_hybrid checks available()) and
+`event_model.py` (finetuned_available() checks both checkpoint AND importability).
+README Quickstart updated: base install runs offline on keyword/lexicon layer;
+optional model backends documented via requirements-model.txt + the two
+fine-tune scripts. Committed data (market CSVs, demo replay) means the demo
+works with no network and no model download.
+
 ## Progress Log
 
 - 2026-10-09: Consolidated dashboard/infrastructure plan adopted (P0/P1/P2,
