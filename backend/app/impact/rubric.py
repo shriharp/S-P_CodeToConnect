@@ -15,6 +15,8 @@ Factor extraction (MVP):
 import re
 from dataclasses import dataclass, field
 
+_URL_RE = re.compile(r"https?://\S+|www\.\S+")
+
 PCT_PATTERNS = (
     r"(?:cut|fell|fell by|down|drop(?:ped)?(?: by)?|declin(?:e|ed)(?: by)?|"
     r"loss(?:es)? of|slump(?:ed)?(?: by)?|plunge(?:d)?(?: by)?|)"
@@ -50,7 +52,9 @@ class ImpactFactors:
 
 
 def extract_factors(text: str) -> ImpactFactors:
-    lower = text.lower()
+    # Strip URLs before factor extraction: a CDN path like ".../default.png"
+    # is never impact evidence and would false-positive continuity cues.
+    lower = _URL_RE.sub(" ", text.lower())
     factors = ImpactFactors()
 
     pcts: list[float] = []

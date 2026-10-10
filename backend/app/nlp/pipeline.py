@@ -19,7 +19,7 @@ from app.core.signal_contract import (
 from app.impact import rubric
 from app.ingestion.adapters import RawSourceItem
 from app.nlp.events import classify_event
-from app.nlp.excerpts import sentence_excerpts
+from app.nlp.excerpts import merge_excerpts, sentence_excerpts
 from app.nlp.sentiment import NEGATIVE_CUES, POSITIVE_CUES, score_sentiment
 
 
@@ -72,7 +72,7 @@ def analyze_item(
     impact_explanation = rubric.explain(factors, impact_score) if impact_score else None
     impact_excerpts = sentence_excerpts(item.text, factors.evidence, EvidenceSupports.impact)
 
-    excerpts = event_excerpts + senti_excerpts + impact_excerpts
+    excerpts = merge_excerpts(event_excerpts + senti_excerpts + impact_excerpts)
     resolutions = resolve(item.text)
 
     flags: set[QualityFlag] = set()

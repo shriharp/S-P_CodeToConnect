@@ -10,8 +10,12 @@ Semantics enforced here:
 
 from datetime import datetime
 from enum import Enum
+import re
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+_URL_RE = re.compile(r"https?://\S+|www\.\S+")
+_CASHTAG_RE = re.compile(r"\$[A-Za-z]{1,5}\b")
 
 SCHEMA_VERSION = "0.1"
 
@@ -168,13 +172,27 @@ class RiskSignal(BaseModel):
         return self
 
 
-def validate_evidence_membership(signal: RiskSignal, source_text: str) -> None:
-    """Every excerpt must be an exact substring of the retained source text.
+def normalize_evidence_text(text: str) -> str:
+    """Normalize text for evidence comparison: strip URLs/cashtags, collapse
+    whitespace. Used consistently by excerpt extraction AND membership
+    validation, so a cleaned excerpt still maps to a real source span — the
+    anti-fabrication guarantee holds (only noise tokens are removed, never
+    words added or reordered)."""
+    t = _URL_RE.sub(" ", text)
+    t = _CASHTAG_RE.sub(" ", t)
+    return re.sub(r"\s+", " ", t).strip(" .,;:!?-")
 
-    Raises ValueError naming the offending excerpt. Do not fabricate evidence.
+
+def validate_evidence_membership(signal: RiskSignal, source_text: str) -> None:
+    """Every excerpt must map to a real span of the retained source text.
+
+    Comparison is done on noise-normalized text (URLs/cashtags stripped) so
+    readable excerpts still validate. Raises ValueError naming the offending
+    excerpt. Do not fabricate evidence.
     """
+    normalized_source = normalize_evidence_text(source_text).lower()
     for excerpt in signal.evidence_excerpts:
-        if excerpt.text not in source_text:
+        if normalize_evidence_text(excerpt.text).lower() not in normalized_source:
             raise ValueError(
                 f"evidence excerpt not found in source text: {excerpt.text!r}"
             )

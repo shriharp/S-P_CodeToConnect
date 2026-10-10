@@ -306,7 +306,7 @@ def live_poll(
     """
     from app.ingestion.live_poller import poll_live
 
-    out = poll_live(news_query=news_query)
+    out = poll_live(news_query=news_query, seen_source=store.has_source_item)
     event = out["decision_event"]
     for sig in out["signals"]:
         store.save(sig)
@@ -326,6 +326,7 @@ def live_poll(
                 "ticker": d.ticker,
                 "decision": d.decision,
                 "reason": d.reason,
+                "original_weight": d.original_weight,
                 "final_weight": d.final_weight,
             }
             for d in event.decisions

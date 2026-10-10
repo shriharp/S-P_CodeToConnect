@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getSignals, livePoll } from '../api.js'
+import { CategoryCell, FlagList } from '../components/display.jsx'
 
 function SentimentCell({ v }) {
   if (v === null || v === undefined) return <span className="muted">null</span>
@@ -30,12 +31,20 @@ function SignalDetail({ signal }) {
       <h3 style={{ marginTop: 0 }}>{signal.company_name} ({signal.ticker || 'unresolved'})</h3>
       <table>
         <tbody>
-          <tr><th>Event</th><td>{signal.event_category}</td></tr>
+          <tr><th>Event</th><td><CategoryCell signal={signal} /></td></tr>
           <tr><th>Sentiment</th><td><SentimentCell v={signal.sentiment_score} /></td></tr>
           <tr><th>Impact</th><td>{signal.impact_score ?? 'null'} / 10</td></tr>
           <tr><th>Impact explanation</th><td>{signal.impact_explanation || '—'}</td></tr>
           <tr><th>Status</th><td>{signal.analysis_status}</td></tr>
           <tr><th>Source</th><td>{signal.source_type} · {signal.source_provider}</td></tr>
+          <tr>
+            <th>Link</th>
+            <td>
+              {signal.source_url
+                ? <a href={signal.source_url} target="_blank" rel="noreferrer">open original ↗</a>
+                : <span className="muted">none</span>}
+            </td>
+          </tr>
           <tr><th>Provenance</th><td><ProvenanceBadge p={signal.provenance} /></td></tr>
           <tr><th>Published</th><td>{signal.published_at || 'null'}</td></tr>
           <tr><th>Method</th><td>{signal.analysis_method_version}</td></tr>
@@ -43,9 +52,7 @@ function SignalDetail({ signal }) {
       </table>
       <div>
         <strong>Quality flags:</strong>{' '}
-        {signal.quality_flags.length === 0
-          ? <span className="muted">none</span>
-          : signal.quality_flags.map((f) => <span className="flag" key={f}>{f}</span>)}
+        <FlagList flags={signal.quality_flags} />
       </div>
       <div>
         <strong>Evidence excerpts:</strong>
@@ -152,9 +159,9 @@ export default function Signals() {
                 <td>{s.company_name}</td>
                 <td><SentimentCell v={s.sentiment_score} /></td>
                 <td>{s.impact_score ?? 'null'}</td>
-                <td>{s.event_category}</td>
+                <td><CategoryCell signal={s} /></td>
                 <td><ProvenanceBadge p={s.provenance} /></td>
-                <td>{s.quality_flags.length ? s.quality_flags.join(', ') : '—'}</td>
+                <td><FlagList flags={s.quality_flags} /></td>
               </tr>
             ))}
             {ordered.length === 0 && (
