@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSectors, rebalancePortfolio, ingestItems } from '../api.js'
+import { getSectors, simulate, ingestItems } from '../api.js'
 
 function SentimentCell({ v }) {
   if (v === null || v === undefined) return <span className="muted">null</span>
@@ -94,7 +94,7 @@ export default function StrategyLab() {
     setError(null)
     try {
       setResult(
-        await rebalancePortfolio({
+        await simulate({
           items: [
             { ticker, sentiment_score: Number(sentiment), text: 'what-if', source_item_id: `sim-${Date.now()}` },
           ],

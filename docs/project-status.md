@@ -20,42 +20,41 @@ deferred**, with files touched and tests run recorded on completion.
       Files: `app/portfolio/rebalancer.py` (DecisionRecord), `app/storage/ledger.py`,
       `app/api/main.py` (/ledger, /portfolio/weight-history). Tests: 12 in
       `tests/test_ledger.py` (invariants, roundtrip, chronological reconstruction).
-- [ ] **P0.2 Weight Evolution Timeline.** Plot all 10 tickers' weights across
-      rebalance events; rebalance markers + explanations; real yfinance price
-      overlay; clearly distinguish target-allocation decisions from observed
-      market drift. Never present target weights as executed holdings.
-- [ ] **P0.3 Live Signal Feed.** Company, sentiment, impact, event, timestamp,
-      source, provenance, quality flags, freshness + processing status. Real
-      persisted history + polling — no fabricated updates.
-- [ ] **P0.4 Signal → Allocation Drill-Down.** Evidence excerpts; sentiment &
-      impact explanation; real rubric factors/contributions; original→proposed→
-      →final allocation; policy checks, caps, skip reasons. Never fabricate
-      factors the backend did not produce.
-- [ ] **P0.5 Multi-Company Attribution.** Article → multiple company signals,
-      each with its own sentiment/impact/classification/evidence; surface
-      contradictory evidence where supported.
-- [ ] **P0.6 Data & reproducibility — REVISION: LIVE-FIRST.** User directive
-      2026-10-10: all three influxes (news, social, stock) must be LIVE, not
-      committed snapshots. Free/keyless sources only (AGENTS.md "Data Influx"):
-      GDELT (news), StockTwits (social, carries Bullish/Bearish labels), yfinance
-      (live quotes). Committed CSVs + demo replay demoted to a clearly-labeled
-      offline FALLBACK, never primary. Frontend UX changes also required:
-      (a) surface HOT/highest-impact recent items, not just newest (lots of nulls
-      otherwise); (b) move manual article input into Strategy Lab only, not the
-      main Signals flow; (c) replay must visibly animate weight changes over time,
-      not look static. Old P0.6 (offline loader + CSVs + demo replay) is built and
-      still useful as the fallback path.
+- [x] **P0.2 Weight Evolution Timeline.** DONE 2026-10-10. All 10 tickers across
+      rebalance events; animated progressive reveal on replay; yfinance price
+      overlay indexed to 100; labels distinguish target decisions from market
+      drift. `frontend/src/views/Overview.jsx` + `LineChart.jsx`.
+- [x] **P0.3 Live Signal Feed.** DONE 2026-10-10. Company/sentiment/impact/event/
+      timestamp/source/provenance/flags, 5s polling, HOT-vs-newest sort, live-poll
+      trigger. `frontend/src/views/Signals.jsx`.
+- [x] **P0.4 Signal → Allocation Drill-Down.** DONE 2026-10-10. Evidence excerpts
+      (cleaned, merged, deduped), impact explanation, original→final allocation,
+      policy decisions + skip reasons; plus causal "what moved and why" storyboard
+      joining each ledger step to its driving signal. `Overview.jsx`, `Signals.jsx`.
+- [x] **P0.5 Multi-Company Attribution.** DONE. Article → one signal per resolved
+      company (`analyze_item` returns list); Strategy Lab analyzer shows each.
+- [x] **P0.6 Data & reproducibility — LIVE-FIRST.** DONE 2026-10-10. GDELT news +
+      StockTwits social + yfinance quotes, all free/keyless, graceful degradation,
+      re-poll dedup (no stale re-drift). Offline CSVs + demo replay kept as labeled
+      fallback. Frontend UX done: HOT ranking, manual input moved to Strategy Lab,
+      animated replay, Social chatter label, clickable source links, flag tooltips,
+      ledger Before/After/Δ columns. `app/ingestion/live_sources.py`,
+      `live_poller.py`, `frontend/src/views/*`.
+      KNOWN GAP: GDELT news path unconfirmed live (429 under repeated test
+      bursts; needs one clean-network verification).
 
 ## Approved Scope — P1 (high-value dashboard)
 
 - [ ] **P1.1 Sector Exposure Heatmap.** Add sector metadata for existing 10
       tickers; sector exposure before/after rebalance. Sector concentration
       *constraints* stay a separate policy feature.
-- [ ] **P1.2 Unified What-If / Risk Policy Simulator.** Non-persistent (read-only
-      by default) simulation endpoint; synthetic sentiment + adjustable supported
-      policy params; demonstrate caps + skips; show full weight vector incl. which
-      holdings fund an increase; preserve 100% invariant; reuse real rebalancer
-      logic (no frontend-only formula). Impact is read-only (does not size).
+- [x] **P1.2 Unified What-If / Risk Policy Simulator.** DONE 2026-10-10. Added
+      read-only `POST /simulate` — same real rebalancer engine (caps, gates,
+      renormalization) but no ledger append, so experiments never pollute the
+      audited ledger/weight-history. Strategy Lab switched to it. Impact remains
+      display-only. Verified: /simulate leaves ledger+history unchanged;
+      /rebalance still persists. Tests: `tests/test_simulate.py`.
+      `backend/app/api/main.py`, `frontend/src/views/StrategyLab.jsx`.
 - [ ] **P1.3 Market Risk Overview** (rename of Impact & Sentiment Radar). Event-
       category distributions, sentiment trends, impact distributions,
       exposure-weighted risk — only where data supports it.
