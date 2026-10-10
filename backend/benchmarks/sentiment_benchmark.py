@@ -57,17 +57,29 @@ def run_event_benchmark(force_refresh: bool = False) -> dict:
     if _event_cache is not None and not force_refresh:
         return _event_cache
 
-    from app.nlp.events import classify_event
+    from app.nlp.events import classify_event, classify_event_hybrid
 
     keyword = _run_event_backend(lambda t: classify_event(t)[0].name)
+    hybrid = _run_event_backend(lambda t: classify_event_hybrid(t)[0].name)
 
     model = None
     model_reason = None
+    finetuned = None
+    finetuned_reason = None
     if __import__("importlib.util", fromlist=["find_spec"]).find_spec("transformers"):
-        from app.nlp.event_model import classify_event_model
+        from app.nlp.event_model import (
+            classify_event_finetuned,
+            classify_event_model,
+            finetuned_available,
+        )
 
         classify_event_model("warmup")  # exclude one-time model load
         model = _run_event_backend(lambda t: classify_event_model(t)[0])
+        if finetuned_available():
+            classify_event_finetuned("warmup")  # exclude one-time model load
+            finetuned = _run_event_backend(lambda t: classify_event_finetuned(t)[0])
+        else:
+            finetuned_reason = "no trained checkpoint (run scripts/finetune_event_classifier)"
     else:
         model_reason = "transformers not installed (model backend unavailable)"
 
@@ -75,11 +87,16 @@ def run_event_benchmark(force_refresh: bool = False) -> dict:
         "sample_size": len(EVENT_EVAL_CASES),
         "methodology": (
             "Accuracy over all cases; abstentions (unknown) scored as predictions. "
+            "Hybrid = keyword for clear cues + zero-shot NLI for paraphrases/ties. "
+            "Finetuned = DistilRoBERTa trained on templated synthetic data. "
             "FIXTURES ARE SYNTHETIC dev labels — not a real-world accuracy claim."
         ),
         "keyword": keyword,
+        "hybrid": hybrid,
         "model": model,
+        "finetuned": finetuned,
         "model_unavailable_reason": model_reason,
+        "finetuned_unavailable_reason": finetuned_reason,
     }
     return _event_cache
 

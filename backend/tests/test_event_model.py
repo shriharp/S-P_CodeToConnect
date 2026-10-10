@@ -56,3 +56,40 @@ def test_event_eval_cases_exist():
     assert len(EVENT_EVAL_CASES) >= 30
     categories = {gold for _, gold in EVENT_EVAL_CASES}
     assert "unknown" in categories  # includes abstention cases
+
+
+def test_hybrid_catches_paraphrase_keyword_misses():
+    # "profit fell short" has no earnings keyword cue -> keyword returns Unknown,
+    # but the hybrid defers to the model and catches it.
+    from app.nlp.events import classify_event, classify_event_hybrid
+
+    text = "Profit fell short of analyst expectations this quarter."
+    assert classify_event(text)[0] is EventCategory.unknown
+    assert classify_event_hybrid(text)[0] is EventCategory.earnings
+
+
+def test_hybrid_keeps_keyword_shorthand():
+    # "default" is a clean keyword cue; the hybrid must trust keyword here and
+    # not let the model (which misreads it as operational_disruption) override.
+    from app.nlp.events import classify_event_hybrid
+
+    assert classify_event_hybrid("The company defaulted on its debt.")[0] is EventCategory.credit_event
+
+
+def test_hybrid_beats_both_on_eval_set():
+    # Measured claim: hybrid > keyword and hybrid > model on the labeled set.
+    from app.nlp.event_eval_cases import EVENT_EVAL_CASES
+    from app.nlp.events import classify_event, classify_event_hybrid
+
+    def acc(fn):
+        return sum(1 for t, g in EVENT_EVAL_CASES if fn(t) == g)
+
+    kw = acc(lambda t: classify_event(t)[0].name)
+    hy = acc(lambda t: classify_event_hybrid(t)[0].name)
+    assert hy > kw  # hybrid must beat the keyword baseline
+
+
+def test_hybrid_abstains_on_chatter():
+    from app.nlp.events import classify_event_hybrid
+
+    assert classify_event_hybrid("To the moon 🚀🚀")[0] is EventCategory.unknown

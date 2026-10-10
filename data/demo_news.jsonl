@@ -1,15 +1,40 @@
-{"id": "demo-01", "published_at": "2026-10-01T08:05:00Z", "text": "Apple cut revenue guidance after a factory shutdown disrupted production, with revenue falling 8 percent."}
-{"id": "demo-02", "published_at": "2026-10-01T09:30:00Z", "text": "Microsoft won a major cloud contract, beating estimates and raising full-year guidance on strong growth."}
-{"id": "demo-03", "published_at": "2026-10-01T11:15:00Z", "text": "JPMorgan was downgraded by analysts over concerns about rising credit losses in its lending book."}
-{"id": "demo-04", "published_at": "2026-10-02T08:40:00Z", "text": "Exxon Mobil saw revenue fall 6 percent amid weak energy demand and lower oil prices."}
-{"id": "demo-05", "published_at": "2026-10-02T10:10:00Z", "text": "Pfizer shares surged after a drug approval was confirmed, lifting the outlook for its pipeline."}
-{"id": "demo-06", "published_at": "2026-10-02T14:20:00Z", "text": "Johnson & Johnson held its quarterly dividend steady and reaffirmed profit guidance."}
-{"id": "demo-07", "published_at": "2026-10-03T09:05:00Z", "text": "Walmart raised full-year guidance on strong same-store sales growth and record profit."}
-{"id": "demo-08", "published_at": "2026-10-03T11:45:00Z", "text": "Chevron posted a gain after announcing a new oil discovery that boosts its reserves."}
-{"id": "demo-09", "published_at": "2026-10-05T08:30:00Z", "text": "A data outage disrupted Coca-Cola ordering systems for hours, cutting into shipments."}
-{"id": "demo-10", "published_at": "2026-10-05T13:00:00Z", "text": "Procter & Gamble reported record profit and beat earnings estimates on strong demand."}
-{"id": "demo-11", "published_at": "2026-10-06T09:20:00Z", "text": "Apple launched a new product that analysts expect to drive strong upgrade demand."}
-{"id": "demo-12", "published_at": "2026-10-06T15:10:00Z", "text": "Pfizer faces a lawsuit over allegedly false marketing, raising legal uncertainty."}
-{"id": "demo-13", "published_at": "2026-10-07T08:50:00Z", "text": "Microsoft named a new head of its cloud division in a management change."}
-{"id": "demo-14", "published_at": "2026-10-07T12:35:00Z", "text": "JPMorgan won a partnership contract, expanding its services business."}
-{"id": "demo-15", "published_at": "2026-10-08T10:00:00Z", "text": "Exxon Mobil upgraded after a strong quarter, with profit rising on higher output."}
+{"id": "demo-01", "published_at": "2026-10-01T08:00:00Z", "text": "Apple cut revenue guidance after a factory shutdown disrupted production."}
+{"id": "demo-11", "published_at": "2026-10-01T08:00:00Z", "text": "Apple announced a dividend increase alongside strong results."}
+{"id": "demo-21", "published_at": "2026-10-01T08:00:00Z", "text": "Apple cut revenue guidance after a factory shutdown disrupted production."}
+{"id": "demo-31", "published_at": "2026-10-01T08:00:00Z", "text": "Apple announced a dividend increase alongside strong results."}
+{"id": "demo-02", "published_at": "2026-10-02T10:00:00Z", "text": "Microsoft beat quarterly earnings estimates and raised its full-year guidance."}
+{"id": "demo-12", "published_at": "2026-10-02T10:00:00Z", "text": "An outage disrupted Microsoft ordering systems for hours."}
+{"id": "demo-22", "published_at": "2026-10-02T10:00:00Z", "text": "Microsoft beat quarterly earnings estimates and raised its full-year guidance."}
+{"id": "demo-32", "published_at": "2026-10-02T10:00:00Z", "text": "An outage disrupted Microsoft ordering systems for hours."}
+{"id": "demo-03", "published_at": "2026-10-03T12:00:00Z", "text": "A lawsuit alleges JPMorgan misled investors over its accounting."}
+{"id": "demo-13", "published_at": "2026-10-03T12:00:00Z", "text": "JPMorgan agreed to acquire a smaller competitor in a cash deal."}
+{"id": "demo-23", "published_at": "2026-10-03T12:00:00Z", "text": "A lawsuit alleges JPMorgan misled investors over its accounting."}
+{"id": "demo-33", "published_at": "2026-10-03T12:00:00Z", "text": "JPMorgan agreed to acquire a smaller competitor in a cash deal."}
+{"id": "demo-04", "published_at": "2026-10-04T14:00:00Z", "text": "Exxon Mobil won a major cloud contract, lifting its outlook."}
+{"id": "demo-14", "published_at": "2026-10-04T14:00:00Z", "text": "Investors sold off Exxon Mobil shares after a profit warning."}
+{"id": "demo-24", "published_at": "2026-10-04T14:00:00Z", "text": "Exxon Mobil won a major cloud contract, lifting its outlook."}
+{"id": "demo-34", "published_at": "2026-10-04T14:00:00Z", "text": "Investors sold off Exxon Mobil shares after a profit warning."}
+{"id": "demo-05", "published_at": "2026-10-05T16:00:00Z", "text": "Credit rating agencies downgraded Procter & Gamble debt on rising losses."}
+{"id": "demo-15", "published_at": "2026-10-05T16:00:00Z", "text": "Procter & Gamble raised its dividend after a resilient quarter."}
+{"id": "demo-25", "published_at": "2026-10-05T16:00:00Z", "text": "Credit rating agencies downgraded Procter & Gamble debt on rising losses."}
+{"id": "demo-35", "published_at": "2026-10-05T16:00:00Z", "text": "Procter & Gamble raised its dividend after a resilient quarter."}
+{"id": "demo-06", "published_at": "2026-10-06T08:00:00Z", "text": "Coca-Cola unveiled a new product line at its annual event."}
+{"id": "demo-16", "published_at": "2026-10-06T08:00:00Z", "text": "A supplier dispute disrupted Coca-Cola assembly lines."}
+{"id": "demo-26", "published_at": "2026-10-06T08:00:00Z", "text": "Coca-Cola unveiled a new product line at its annual event."}
+{"id": "demo-36", "published_at": "2026-10-06T08:00:00Z", "text": "A supplier dispute disrupted Coca-Cola assembly lines."}
+{"id": "demo-07", "published_at": "2026-10-07T10:00:00Z", "text": "Johnson & Johnson signed a multi-year supply partnership with a rival."}
+{"id": "demo-17", "published_at": "2026-10-07T10:00:00Z", "text": "Johnson & Johnson launched a new subscription service for its platform."}
+{"id": "demo-27", "published_at": "2026-10-07T10:00:00Z", "text": "Johnson & Johnson signed a multi-year supply partnership with a rival."}
+{"id": "demo-37", "published_at": "2026-10-07T10:00:00Z", "text": "Johnson & Johnson launched a new subscription service for its platform."}
+{"id": "demo-08", "published_at": "2026-10-08T12:00:00Z", "text": "A recall affected thousands of Walmart products after a defect."}
+{"id": "demo-18", "published_at": "2026-10-08T12:00:00Z", "text": "Walmart missed revenue expectations amid weak demand."}
+{"id": "demo-28", "published_at": "2026-10-08T12:00:00Z", "text": "A recall affected thousands of Walmart products after a defect."}
+{"id": "demo-38", "published_at": "2026-10-08T12:00:00Z", "text": "Walmart missed revenue expectations amid weak demand."}
+{"id": "demo-09", "published_at": "2026-10-09T14:00:00Z", "text": "Chevron posted record profit, beating analyst expectations."}
+{"id": "demo-19", "published_at": "2026-10-09T14:00:00Z", "text": "Chevron entered a joint venture to develop battery technology."}
+{"id": "demo-29", "published_at": "2026-10-09T14:00:00Z", "text": "Chevron posted record profit, beating analyst expectations."}
+{"id": "demo-39", "published_at": "2026-10-09T14:00:00Z", "text": "Chevron entered a joint venture to develop battery technology."}
+{"id": "demo-10", "published_at": "2026-10-10T16:00:00Z", "text": "Regulators fined Pfizer over compliance failures."}
+{"id": "demo-20", "published_at": "2026-10-10T16:00:00Z", "text": "A cyberattack took Pfizer systems offline, disrupting orders."}
+{"id": "demo-30", "published_at": "2026-10-10T16:00:00Z", "text": "Regulators fined Pfizer over compliance failures."}
+{"id": "demo-40", "published_at": "2026-10-10T16:00:00Z", "text": "A cyberattack took Pfizer systems offline, disrupting orders."}

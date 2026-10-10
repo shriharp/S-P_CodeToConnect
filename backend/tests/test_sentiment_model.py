@@ -20,7 +20,8 @@ def test_model_backend_scores_and_labels_method():
     )
     sig = analyze_item(item, provenance="synthetic", sentiment_backend="model")[0]
     assert sig.sentiment_score is not None and sig.sentiment_score < 0
-    assert sig.analysis_method_version == "distilroberta-fin-0.1"
+    # Method version reports both the sentiment and event backends in use.
+    assert sig.analysis_method_version.startswith("distilroberta-fin-0.1")
 
 
 def test_model_neutral_maps_to_zero():

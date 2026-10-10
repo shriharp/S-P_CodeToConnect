@@ -89,7 +89,7 @@ class IngestRequest(BaseModel):
     provenance: str = "live"
     record: bool = False
     sentiment_backend: str = "lexicon"
-    event_backend: str = "hybrid"
+    event_backend: str = "finetuned"
 
 
 @app.post("/ingest", response_model=list[RiskSignal])
@@ -99,7 +99,7 @@ def ingest(req: IngestRequest, store: SignalStore = Depends(get_store)) -> list[
         raise HTTPException(status_code=422, detail="invalid provenance")
     if req.sentiment_backend not in ("lexicon", "model"):
         raise HTTPException(status_code=422, detail="invalid sentiment_backend")
-    if req.event_backend not in ("keyword", "model", "hybrid"):
+    if req.event_backend not in ("keyword", "model", "hybrid", "finetuned"):
         raise HTTPException(status_code=422, detail="invalid event_backend")
     signals: list[RiskSignal] = []
     for raw in req.items:

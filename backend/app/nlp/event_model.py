@@ -75,3 +75,52 @@ def classify_event_model(text: str) -> tuple[str, float | None]:
         if label == best_label:
             return key, best_score
     return "unknown", best_score
+
+
+FT_DIR = None  # resolved lazily to backend/models/event_classifier
+_ft_model = None
+_ft_tok = None
+_ft_labels = None
+
+
+def finetuned_available() -> bool:
+    """True if a trained checkpoint exists on disk (else caller falls back)."""
+    from pathlib import Path
+
+    d = Path(__file__).resolve().parents[2] / "models" / "event_classifier"
+    return (d / "config.json").exists()
+
+
+def _get_finetuned():
+    global _ft_model, _ft_tok, _ft_labels, FT_DIR
+    if _ft_model is None:
+        import json
+        from pathlib import Path
+
+        from transformers import (
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+        )
+
+        FT_DIR = Path(__file__).resolve().parents[2] / "models" / "event_classifier"
+        _ft_tok = AutoTokenizer.from_pretrained(FT_DIR)
+        _ft_model = AutoModelForSequenceClassification.from_pretrained(FT_DIR)
+        _ft_model.eval()
+        _ft_labels = json.loads((FT_DIR / "labels.json").read_text())
+    return _ft_model, _ft_tok, _ft_labels
+
+
+def classify_event_finetuned(text: str) -> tuple[str, float | None]:
+    """Classify via the fine-tuned DistilRoBERTa event checkpoint.
+
+    Returns (category_key, confidence). Trained on templated synthetic data —
+    see docs/model-evaluation.md for the honest caveat and measured numbers.
+    """
+    import torch
+
+    model, tok, labels = _get_finetuned()
+    inputs = tok(text, return_tensors="pt", truncation=True, max_length=128)
+    with torch.no_grad():
+        probs = torch.softmax(model(**inputs).logits[0], dim=-1)
+    idx = int(torch.argmax(probs))
+    return labels[idx], float(probs[idx])

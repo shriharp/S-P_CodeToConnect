@@ -23,14 +23,14 @@ from app.portfolio.demo import demo_portfolio
 from app.portfolio.rebalancer import Portfolio, RebalanceResult, rebalance
 
 DEFAULT_NEWS_QUERY = "apple OR microsoft OR jpmorgan OR pfizer OR exxon"
-SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM")  # subset to keep poll weight low
+SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM", "XOM", "PG", "KO", "JNJ", "WMT", "CVX", "PFE")
 
 
 def poll_live(
     portfolio: Portfolio | None = None,
     news_query: str = DEFAULT_NEWS_QUERY,
     sentiment_backend: str = "model",
-    event_backend: str = "keyword",
+    event_backend: str = "hybrid",
     seen_source=None,
 ) -> dict:
     """One live ingestion cycle across all three free sources.
