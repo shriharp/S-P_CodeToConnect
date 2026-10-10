@@ -11,4 +11,5 @@ dist/
 .env
 backend/recordings/
 backend/data/
+backend/models/
 
