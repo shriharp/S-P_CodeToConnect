@@ -37,6 +37,7 @@ export const getSignalsCount = () => get('/signals/count')
 export const getSignalsOverview = () => get('/signals/overview')
 export const getLedger = (limit = 100) => get(`/ledger?limit=${limit}`)
 export const getWeightHistory = () => get('/portfolio/weight-history')
+export const getPerformance = () => get('/portfolio/performance')
 export const getPrices = (tickers) =>
   get(`/market/prices${tickers ? `?tickers=${tickers}` : ''}`)
 export const getSectors = () => get('/market/sectors')
