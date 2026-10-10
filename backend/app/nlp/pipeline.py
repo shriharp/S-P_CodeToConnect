@@ -34,7 +34,7 @@ def analyze_item(
     provenance: str,
     source_item_id: str | None = None,
     sentiment_backend: str = "lexicon",
-    event_backend: str = "keyword",
+    event_backend: str = "hybrid",
     ingested_at: datetime | None = None,
 ) -> list[RiskSignal]:
     """Return one RiskSignal per resolved company in the source item.
@@ -48,9 +48,11 @@ def analyze_item(
     The model overrides the score only; evidence excerpts remain exact
     source substrings drawn from the lexicon cue layer.
 
-    event_backend: "keyword" (default, regex table) or "model" (zero-shot NLI
-    classifier). The model picks the category; evidence excerpts still come from
-    the retained source text (never fabricated).
+    event_backend: "hybrid" (default — keyword table for clear cues, zero-shot
+    NLI model to catch paraphrases and break ambiguous ties; measurably best on
+    the eval set), "keyword" (regex table only, no model), or "model" (zero-shot
+    NLI only). The chosen backend picks the category; evidence excerpts always
+    come from the retained source text (never fabricated).
 
     ingested_at: overrides the ingestion timestamp. Replay passes the item's
     published time so the freshness gate evaluates against event time, not
@@ -76,6 +78,11 @@ def analyze_item(
         ]
         event_excerpts = sentence_excerpts(item.text, kw, EvidenceSupports.event)
         method_version_event = "zero-shot-nli-0.1"
+    elif event_backend == "hybrid":
+        from app.nlp.events import classify_event_hybrid
+
+        event_category, event_excerpts = classify_event_hybrid(item.text)
+        method_version_event = "hybrid-kw+nli-0.1"
     else:
         event_category, event_excerpts = classify_event(item.text)
         method_version_event = None
