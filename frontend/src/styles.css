@@ -103,3 +103,52 @@ td {
   margin: 0.3rem 0;
   font-size: 0.85rem;
 }
+
+/* ---- Dashboard (Phase 2) ---- */
+.app { max-width: 900px; margin: 0 auto; }
+header h1 { margin-bottom: 0.2rem; }
+.panel { margin-bottom: 1rem; }
+.panel h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 0.4rem; }
+
+.kpis { display: flex; gap: 0.75rem; margin: 0.75rem 0; flex-wrap: wrap; }
+.kpi {
+  background: #f4f5f7; border: 1px solid #e1e4e8; border-radius: 8px;
+  padding: 0.6rem 1rem; min-width: 90px;
+}
+.kpi-label { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; }
+.kpi-value { font-size: 1.3rem; font-weight: 600; }
+
+table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.88rem; }
+th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #e1e4e8; }
+th { color: #6b7280; font-weight: 600; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover { background: #f0f4ff; }
+
+.muted { color: #6b7280; font-size: 0.85rem; }
+.pos { color: #059669; }
+.neg { color: #e11d48; }
+.neu { color: #6b7280; }
+.sent { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.flag, .prov, .dec {
+  display: inline-block; border-radius: 4px; padding: 0.1rem 0.4rem;
+  font-size: 0.72rem; border: 1px solid; margin: 0.1rem;
+}
+.flag { background: #fff3cd; border-color: #ffe08a; }
+.prov-live { background: #dcfce7; border-color: #86efac; }
+.prov-replay { background: #dbeafe; border-color: #93c5fd; }
+.prov-synthetic { background: #f3e8ff; border-color: #d8b4fe; }
+.dec-executed { background: #dcfce7; border-color: #86efac; }
+.dec-capped { background: #fef9c3; border-color: #fde047; }
+.dec-skipped { background: #fee2e2; border-color: #fca5a5; }
+
+.bar { background: #e1e4e8; border-radius: 4px; height: 10px; overflow: hidden; }
+.bar > div { background: #0a5cff; height: 100%; }
+
+.ledger-event { border: 1px solid #e1e4e8; border-radius: 8px; padding: 0.6rem; margin: 0.6rem 0; }
+.ledger-head { display: flex; gap: 1rem; align-items: baseline; margin-bottom: 0.3rem; flex-wrap: wrap; }
+.detail table th { width: 160px; }
+.split { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.mini { border: 1px solid #e1e4e8; border-radius: 6px; padding: 0.4rem 0.6rem; }
+.controls { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin: 0.5rem 0; }
+.controls input[type='range'] { vertical-align: middle; }
