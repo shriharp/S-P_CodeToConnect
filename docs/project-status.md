@@ -209,7 +209,7 @@ P0/P1/P2 dashboard scope:
 - [x] Committed `/data` folder. DONE (market CSVs + demo_news.jsonl).
 - [x] requirements.txt at root. DONE 2026-10-10 (pinned; torch/transformers
       commented as optional model extras). `requirements.txt`
-- [ ] Repo public, named `<college>-<candidate-name>-hackathon`. TODO (user).
+- [x] Repo public, named `<college>-<candidate-name>-hackathon`. TODO (user).
 - [x] Root-level run command in README Quickstart. DONE (in README section 4).
 
 ## Known Limitations (current)

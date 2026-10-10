@@ -31,7 +31,7 @@ export function displayCategory(signal) {
 export function CategoryCell({ signal }) {
   const label = displayCategory(signal)
   if (label === 'Social chatter') {
-    return <span className="flag flag-chatter" title="Sentiment-only social post; no distinct financial event.">{label}</span>
+    return <span className="muted" title="Sentiment-only social post; no distinct financial event.">{label}</span>
   }
   return <>{label}</>
 }

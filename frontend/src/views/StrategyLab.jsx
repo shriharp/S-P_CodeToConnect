@@ -35,20 +35,20 @@ function ArticleAnalyzer() {
 
   return (
     <div className="panel">
-      <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Article Analyzer</h2>
-      <p className="muted">
-        Paste a headline or paragraph to see how the real pipeline scores it. Each resolved
-        company becomes its own signal. This is a manual sandbox — the main Signals feed is
-        fed by live source polling instead.
-      </p>
+      <div className="panel-head">
+        <div>
+          <h3>Article Analyzer</h3>
+          <div className="sub">Paste text to see how the real pipeline scores it — each resolved company becomes its own signal</div>
+        </div>
+        <button className="action" onClick={run} disabled={loading || !text.trim()}>
+          {loading ? 'Analyzing…' : 'Analyze'}
+        </button>
+      </div>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="e.g. Apple cut revenue guidance while Microsoft won a cloud contract."
       />
-      <button className="action" onClick={run} disabled={loading || !text.trim()}>
-        {loading ? 'Analyzing…' : 'Analyze'}
-      </button>
       {error && <div className="error">{error}</div>}
       {signals && signals.length > 0 && (
         <table>
@@ -142,10 +142,13 @@ function BenchmarkPanel() {
 
   return (
     <div className="panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Model vs Lexicon</h2>
-        <button className="action" onClick={() => load(true)} disabled={loading} style={{ marginTop: 0 }}>
-          {loading ? 'Running benchmark…' : 'Re-run'}
+      <div className="panel-head">
+        <div>
+          <h3>Model vs Lexicon</h3>
+          <div className="sub">Measured benchmark over labeled dev fixtures — accuracy, confusion matrix, latency</div>
+        </div>
+        <button className="ghost" onClick={() => load(true)} disabled={loading}>
+          {loading ? 'Running…' : 'Re-run'}
         </button>
       </div>
       {error && <div className="error">{error}</div>}
@@ -180,7 +183,7 @@ export default function StrategyLab() {
     getSectors().then((s) => setTickers(Object.keys(s))).catch(() => {})
   }, [])
 
-  const simulate = async () => {
+  const runSimulation = async () => {
     setRunning(true)
     setError(null)
     try {
@@ -200,13 +203,21 @@ export default function StrategyLab() {
 
   return (
     <>
+    <div className="page-head">
+      <h2>Strategy Lab</h2>
+      <p>Experiment safely — ad-hoc text analysis, a read-only what-if simulator, and the model-vs-lexicon benchmark. Nothing here mutates the demo portfolio.</p>
+    </div>
+
     <div className="panel">
-      <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>What-If Simulator</h2>
-      <p className="muted">
-        Inject a hypothetical signal and watch the real rebalancer respond. Non-persistent:
-        this never mutates the demo portfolio. Impact is display-only — adjustments are sized
-        by sentiment, capped, and renormalized to 100%.
-      </p>
+      <div className="panel-head">
+        <div>
+          <h3>What-If Simulator</h3>
+          <div className="sub">Real rebalancer logic, non-persistent — caps, gates, and renormalization all apply</div>
+        </div>
+        <button className="action" onClick={runSimulation} disabled={running}>
+          {running ? 'Simulating…' : 'Simulate'}
+        </button>
+      </div>
       <div className="controls">
         <label>Ticker{' '}
           <select value={ticker} onChange={(e) => setTicker(e.target.value)}>
@@ -220,22 +231,19 @@ export default function StrategyLab() {
           />
           <span className="muted">{Number(sentiment).toFixed(2)}</span>
         </label>
-        <button className="action" onClick={simulate} disabled={running} style={{ marginTop: 0 }}>
-          {running ? 'Simulating…' : 'Simulate'}
-        </button>
       </div>
       {error && <div className="error">{error}</div>}
       {result && (
         <>
           <table>
-            <thead><tr><th>Ticker</th><th>Original</th><th>Final</th><th>Adjustment</th></tr></thead>
+            <thead><tr><th>Ticker</th><th className="num">Original</th><th className="num">Final</th><th className="num">Adjustment</th></tr></thead>
             <tbody>
               {Object.keys(result.proposed_weights).map((t) => (
                 <tr key={t}>
                   <td>{t}</td>
-                  <td>{(result.original_weights[t] * 100).toFixed(2)}%</td>
-                  <td>{(result.proposed_weights[t] * 100).toFixed(2)}%</td>
-                  <td className={result.adjustments[t] > 0 ? 'pos' : result.adjustments[t] < 0 ? 'neg' : 'muted'}>
+                  <td className="num">{(result.original_weights[t] * 100).toFixed(2)}%</td>
+                  <td className="num">{(result.proposed_weights[t] * 100).toFixed(2)}%</td>
+                  <td className={`num ${result.adjustments[t] > 0 ? 'pos' : result.adjustments[t] < 0 ? 'neg' : 'muted'}`}>
                     {result.adjustments[t]
                       ? `${result.adjustments[t] > 0 ? '+' : ''}${(result.adjustments[t] * 100).toFixed(2)} pp`
                       : '—'}
@@ -244,7 +252,7 @@ export default function StrategyLab() {
               ))}
             </tbody>
           </table>
-          <p className="muted">{result.disclaimer}</p>
+          <p className="muted" style={{ marginBottom: 0 }}>{result.disclaimer}</p>
         </>
       )}
     </div>
