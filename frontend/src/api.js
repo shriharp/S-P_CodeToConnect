@@ -13,7 +13,29 @@ async function post(path, body) {
   return res.json()
 }
 
+async function get(path) {
+  const res = await fetch(`${BASE}${path}`)
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}))
+    throw new Error(detail.detail ? JSON.stringify(detail.detail) : `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 export const analyzeText = (payload) => post('/analyze', payload)
 export const rebalancePortfolio = (payload) => post('/rebalance', payload)
 export const ingestItems = (payload) => post('/ingest', payload)
 export const replayRecording = (payload) => post('/replay', payload)
+
+// Dashboard (Phase 2)
+export const getSignals = (params = {}) => {
+  const q = new URLSearchParams(params).toString()
+  return get(`/signals${q ? `?${q}` : ''}`)
+}
+export const getSignalsCount = () => get('/signals/count')
+export const getLedger = (limit = 100) => get(`/ledger?limit=${limit}`)
+export const getWeightHistory = () => get('/portfolio/weight-history')
+export const getPrices = (tickers) =>
+  get(`/market/prices${tickers ? `?tickers=${tickers}` : ''}`)
+export const getSectors = () => get('/market/sectors')
+export const runDemoReplay = () => post('/demo/replay', {})
