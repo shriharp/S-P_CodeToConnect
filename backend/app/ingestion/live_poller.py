@@ -30,37 +30,49 @@ def poll_live(
     portfolio: Portfolio | None = None,
     news_query: str = DEFAULT_NEWS_QUERY,
     sentiment_backend: str = "model",
+    seen_source=None,
 ) -> dict:
     """One live ingestion cycle across all three free sources.
 
-    Returns {signals, decision_event, quotes, source_errors}. Never raises on a
-    single-source failure; records it in source_errors instead.
+    seen_source: optional callable(source_item_id) -> bool. Items whose id has
+    already been consumed (returns True) are skipped entirely, so repeated polls
+    do NOT re-apply the same social/news item's adjustment (StockTwits returns
+    identical recent messages every call). Without it, every poll re-drifts
+    weights on stale posts.
+
+    Returns {signals, decision_event, quotes, source_errors, skipped_seen}.
+    Never raises on a single-source failure; records it in source_errors instead.
     """
     now = datetime.now(timezone.utc)
     portfolio = portfolio or demo_portfolio()
     signals = []
     source_errors: dict[str, str] = {}
+    skipped_seen = 0
 
-    # Live news (GDELT)
-    try:
-        for item in fetch_gdelt_news(news_query, max_records=10):
-            signals.extend(
+    def _keep_and_analyze(items):
+        nonlocal skipped_seen
+        out = []
+        for item in items:
+            if seen_source is not None and seen_source(item.external_id):
+                skipped_seen += 1
+                continue
+            out.extend(
                 analyze_item(item, provenance=Provenance.live.value,
                              sentiment_backend=sentiment_backend,
                              ingested_at=now)
             )
+        return out
+
+    # Live news (GDELT)
+    try:
+        signals.extend(_keep_and_analyze(fetch_gdelt_news(news_query, max_records=10)))
     except Exception as exc:  # degrade gracefully, never fabricate
         source_errors["news"] = f"{type(exc).__name__}: {exc}"
 
     # Live social (StockTwits) — one shared item per symbol's stream
     for sym in SOCIAL_SYMBOLS:
         try:
-            for item in fetch_stocktwits(sym, limit=10):
-                signals.extend(
-                    analyze_item(item, provenance=Provenance.live.value,
-                                 sentiment_backend=sentiment_backend,
-                                 ingested_at=now)
-                )
+            signals.extend(_keep_and_analyze(fetch_stocktwits(sym, limit=10)))
         except Exception as exc:
             source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
 
@@ -79,5 +91,6 @@ def poll_live(
         "decision_event": result,
         "quotes": quotes,
         "source_errors": source_errors,
+        "skipped_seen": skipped_seen,
         "polled_at": now.isoformat(),
     }

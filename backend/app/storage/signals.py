@@ -32,6 +32,15 @@ class SignalStore(ABC):
     @abstractmethod
     def count(self) -> int: ...
 
+    @abstractmethod
+    def has_source_item(self, source_item_id: str) -> bool:
+        """True if any signal already derived from this source item exists.
+
+        Used by the live poller to skip re-analyzing and re-consuming the same
+        news/social item across polls (StockTwits returns the same recent
+        messages every call; without this, weights drift on stale posts).
+        """
+
 
 class SqliteSignalStore(SignalStore):
     def __init__(self, path: Path) -> None:
@@ -100,6 +109,14 @@ class SqliteSignalStore(SignalStore):
         row = self._conn.execute("SELECT COUNT(*) FROM signals").fetchone()
         return int(row[0])
 
+    def has_source_item(self, source_item_id: str) -> bool:
+        row = self._conn.execute(
+            "SELECT 1 FROM signals "
+            "WHERE json_extract(payload, '$.source_item_id') = ? LIMIT 1",
+            (source_item_id,),
+        ).fetchone()
+        return row is not None
+
     def close(self) -> None:
         self._conn.close()
 
@@ -130,3 +147,8 @@ class InMemorySignalStore(SignalStore):
 
     def count(self) -> int:
         return len(self._signals)
+
+    def has_source_item(self, source_item_id: str) -> bool:
+        return any(
+            s.source_item_id == source_item_id for s in self._signals.values()
+        )

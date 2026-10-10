@@ -106,17 +106,30 @@ export default function Portfolio() {
               </div>
               <table>
                 <thead>
-                  <tr><th>Ticker</th><th>Decision</th><th>Reason</th><th>Final weight</th></tr>
+                  <tr>
+                    <th>Ticker</th><th>Decision</th><th>Reason</th>
+                    <th>Before</th><th>After</th><th>Δ</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {ev.decisions.map((d, i) => (
-                    <tr key={i}>
-                      <td>{d.ticker || '—'}</td>
-                      <td><span className={`dec dec-${d.decision}`}>{d.decision}</span></td>
-                      <td className="muted">{d.reason || '—'}</td>
-                      <td>{d.final_weight == null ? '—' : pct(d.final_weight)}</td>
-                    </tr>
-                  ))}
+                  {ev.decisions.map((d, i) => {
+                    const before = d.original_weight
+                    const after = d.final_weight
+                    const delta =
+                      before != null && after != null ? after - before : null
+                    return (
+                      <tr key={i}>
+                        <td>{d.ticker || '—'}</td>
+                        <td><span className={`dec dec-${d.decision}`}>{d.decision}</span></td>
+                        <td className="muted">{d.reason || '—'}</td>
+                        <td>{before == null ? '—' : pct(before)}</td>
+                        <td>{after == null ? '—' : pct(after)}</td>
+                        <td className={delta > 1e-9 ? 'pos' : delta < -1e-9 ? 'neg' : 'muted'}>
+                          {delta == null ? '—' : `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(2)} pp`}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

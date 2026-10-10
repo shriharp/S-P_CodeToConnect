@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import LineChart from '../components/LineChart.jsx'
-import { getWeightHistory, getPrices, runDemoReplay, getSectors } from '../api.js'
+import { getWeightHistory, getPrices, runDemoReplay, getLedger, getSignals } from '../api.js'
 
 // Overview / Command Center: portfolio KPIs, Weight Evolution Timeline with
-// real price overlay, and a one-click deterministic demo replay that ANIMATES
-// the weight changes over time (progressive reveal), so decisions are visibly
-// sequential rather than a static final snapshot.
+// real price overlay, a deterministic demo replay that ANIMATES weight changes,
+// and a storyboard that ties each rebalance step to the signals that caused it
+// (so a deviation is traceable to a headline, not just a moving line).
 export default function Overview() {
   const [history, setHistory] = useState([])
   const [prices, setPrices] = useState({})
+  const [steps, setSteps] = useState([]) // storyboard: ledger events + causes
   const [error, setError] = useState(null)
   const [running, setRunning] = useState(false)
   const [selected, setSelected] = useState('AAPL')
@@ -17,9 +18,41 @@ export default function Overview() {
 
   const load = async () => {
     try {
-      const [h, p] = await Promise.all([getWeightHistory(), getPrices(selected)])
+      const [h, p, led, sigs] = await Promise.all([
+        getWeightHistory(),
+        getPrices(selected),
+        getLedger(50),
+        getSignals({ limit: 300 }),
+      ])
       setHistory(h)
       setPrices(p)
+
+      // Join each ledger event's decisions to their source signals so we can
+      // show "headline -> weight move" causality per step.
+      const byId = new Map(sigs.map((s) => [s.signal_id, s]))
+      const chron = [...led].reverse() // oldest first, matches weight-history order
+      setSteps(
+        chron.map((ev) => ({
+          ...ev,
+          causes: ev.decisions
+            .filter((d) => d.original_weight != null && d.final_weight != null)
+            .map((d) => {
+              const s = byId.get(d.signal_id) || {}
+              const delta = d.final_weight - d.original_weight
+              return {
+                key: d.signal_id,
+                ticker: d.ticker,
+                decision: d.decision,
+                delta,
+                company: s.company_name || d.ticker,
+                sentiment: s.sentiment_score,
+                headline: s.event_summary || s.evidence_excerpts?.[0]?.text || '',
+                provenance: s.provenance,
+              }
+            })
+            .filter((c) => Math.abs(c.delta) > 1e-9),
+        }))
+      )
       setError(null)
     } catch (e) {
       setError(e.message)
@@ -121,6 +154,46 @@ export default function Overview() {
 
         {shown.length > 0 && (
           <LineChart labels={labels} series={weightSeries} yFormat={(v) => `${v.toFixed(0)}%`} />
+        )}
+
+        {/* Storyboard: what caused each step's weight movement. */}
+        {steps.length > 0 && (
+          <div className="storyboard">
+            <h3 style={{ fontSize: '0.95rem', marginBottom: '0.4rem' }}>What moved, and why</h3>
+            <p className="muted">
+              Each rebalance step, with the signal that drove it. During a replay the active
+              step is highlighted as the chart advances.
+            </p>
+            {steps.slice(0, visibleCount ?? steps.length).map((step, i) => {
+              const isActive =
+                visibleCount != null && i === Math.min(visibleCount, steps.length) - 1
+              return (
+                <div key={step.event_id} className={`step ${isActive ? 'step-active' : ''}`}>
+                  <div className="step-head">
+                    <strong>Step {i + 1}</strong>
+                    <span className="muted">{step.timestamp?.slice(0, 16).replace('T', ' ')}</span>
+                    {step.causes.length === 0 && (
+                      <span className="muted">no weight change (all skipped)</span>
+                    )}
+                  </div>
+                  {step.causes.map((c) => (
+                    <div className="cause" key={c.key}>
+                      <span className={c.delta > 0 ? 'pos' : 'neg'}>
+                        {c.ticker} {c.delta > 0 ? '+' : ''}{(c.delta * 100).toFixed(2)} pp
+                      </span>
+                      <span className={`dec dec-${c.decision}`}>{c.decision}</span>
+                      {c.sentiment != null && (
+                        <span className="muted">
+                          sent {c.sentiment > 0 ? '+' : ''}{c.sentiment.toFixed(2)}
+                        </span>
+                      )}
+                      {c.headline && <span className="cause-headline">“{c.headline}”</span>}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
         )}
 
         <div style={{ marginTop: '1rem' }}>

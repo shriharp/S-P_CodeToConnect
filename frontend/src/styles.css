@@ -135,6 +135,20 @@ tr.clickable:hover { background: #f0f4ff; }
   font-size: 0.72rem; border: 1px solid; margin: 0.1rem;
 }
 .flag { background: #fff3cd; border-color: #ffe08a; }
+.flag-chatter { background: #e0e7ff; border-color: #a5b4fc; }
+
+.storyboard { margin-top: 1rem; border-top: 1px solid #e1e4e8; padding-top: 0.6rem; }
+.step {
+  border: 1px solid #e1e4e8; border-radius: 6px; padding: 0.4rem 0.6rem;
+  margin: 0.4rem 0; transition: border-color 0.2s, background 0.2s;
+}
+.step-active { border-color: #0a5cff; background: #f0f4ff; }
+.step-head { display: flex; gap: 0.8rem; align-items: baseline; }
+.cause {
+  display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap;
+  padding: 0.15rem 0; font-size: 0.85rem;
+}
+.cause-headline { color: #374151; font-style: italic; }
 .prov-live { background: #dcfce7; border-color: #86efac; }
 .prov-replay { background: #dbeafe; border-color: #93c5fd; }
 .prov-synthetic { background: #f3e8ff; border-color: #d8b4fe; }
