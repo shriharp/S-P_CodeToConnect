@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getLedger, getWeightHistory, getSectors } from '../api.js'
+import { getLedger, getWeightHistory, getSectors, getPerformance } from '../api.js'
+import LineChart from '../components/LineChart.jsx'
 
 const pct = (w) => `${(w * 100).toFixed(2)}%`
 
@@ -7,15 +8,19 @@ export default function Portfolio() {
   const [ledger, setLedger] = useState([])
   const [history, setHistory] = useState([])
   const [sectors, setSectors] = useState({})
+  const [perf, setPerf] = useState(null)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     ;(async () => {
       try {
-        const [l, h, s] = await Promise.all([getLedger(50), getWeightHistory(), getSectors()])
+        const [l, h, s, p] = await Promise.all([
+          getLedger(50), getWeightHistory(), getSectors(), getPerformance(),
+        ])
         setLedger(l)
         setHistory(h)
         setSectors(s)
+        setPerf(p)
       } catch (e) {
         setError(e.message)
       }
@@ -119,6 +124,38 @@ export default function Portfolio() {
           <p className="muted">No allocation yet.</p>
         )}
       </div>
+
+      {perf && (
+        <div className="panel">
+          <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Performance &amp; Benchmarking</h2>
+          <p className="muted">{perf.note}</p>
+          {perf.status === 'ok' ? (
+            <>
+              <div className="kpis">
+                <div className="kpi"><div className="kpi-label">Window</div><div className="kpi-value">{perf.metrics.window_days}d</div></div>
+                <div className="kpi"><div className="kpi-label">Final index</div><div className="kpi-value">{perf.metrics.final_index}</div></div>
+                <div className="kpi"><div className="kpi-label">Max drawdown</div><div className="kpi-value">{perf.metrics.max_drawdown_pct}%</div></div>
+                <div className="kpi"><div className="kpi-label">Avg turnover</div><div className="kpi-value">{perf.metrics.turnover_pct ?? '—'}%</div></div>
+              </div>
+              <LineChart
+                labels={perf.baselines.dates.map((d) => d.slice(5))}
+                series={[
+                  { name: 'strategy', values: perf.baselines.strategy },
+                  ...(perf.baselines.equal_weight
+                    ? [{ name: 'equal-weight', values: perf.baselines.equal_weight }]
+                    : []),
+                  ...(perf.baselines.buy_and_hold
+                    ? [{ name: 'buy-and-hold', values: perf.baselines.buy_and_hold }]
+                    : []),
+                ]}
+                height={200}
+              />
+            </>
+          ) : (
+            <p className="muted">{perf.note}</p>
+          )}
+        </div>
+      )}
 
       <div className="panel">
         <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Decision Ledger</h2>

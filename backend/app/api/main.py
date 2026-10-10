@@ -284,6 +284,18 @@ def weight_history(ledger: RebalanceStore = Depends(get_ledger)) -> list[dict]:
     return ledger.weight_history()
 
 
+@app.get("/portfolio/performance")
+def portfolio_performance(ledger: RebalanceStore = Depends(get_ledger)) -> dict:
+    """Descriptive performance metrics vs equal-weight / buy-and-hold baselines.
+
+    Strictly descriptive (not a predictive backtest) — computed from real price
+    history + recorded weights, no look-ahead, nulls never fabricated.
+    """
+    from app.portfolio.performance import compute_performance
+
+    return compute_performance(ledger.weight_history())
+
+
 @app.get("/market/prices")
 def market_prices(tickers: str | None = None) -> dict:
     """Real close-price history from committed /data CSVs (offline, no network).

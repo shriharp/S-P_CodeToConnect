@@ -65,11 +65,17 @@ deferred**, with files touched and tests run recorded on completion.
       event-category bar chart. Exposure-weighted risk not implemented (no
       exposure data at signal level; deliberately omitted rather than faked).
       `backend/app/api/main.py`, `frontend/src/views/Signals.jsx`.
-- [ ] **P1.4 Portfolio Performance & Benchmarking.** Historical prices + allocation
-      history → portfolio metrics; vs equal-weight and buy-and-hold baselines;
-      turnover, transaction costs, drawdown where feasible; timestamp-valid
-      chronological evaluation, no look-ahead; clearly distinguish illustrative /
-      descriptive / genuinely backtested. Never manufacture metrics.
+- [x] **P1.4 Portfolio Performance & Benchmarking.** DONE 2026-10-10.
+      `GET /portfolio/performance` computes descriptive metrics from real price
+      history + recorded weights: window/final-index/max-drawdown/avg-turnover,
+      plus strategy vs equal-weight vs buy-and-hold trajectories. STRICTLY
+      DESCRIPTIVE — latest recorded weights held constant over the price window;
+      no look-ahead, no outperformance claim, insufficient data returns
+      `insufficient_data` rather than a fabricated number. Portfolio tab panel
+      shows KPIs + the 3-series chart. Transaction costs not modeled (would need
+      a cost assumption; omitted rather than invented). 5 tests in
+      `tests/test_performance.py`. `app/portfolio/performance.py`,
+      `backend/app/api/main.py`, `frontend/src/views/Portfolio.jsx`.
 - [ ] **P1.5 Model vs Lexicon Comparison.** Preserve benchmark; add confusion
       matrix, per-category results, latency comparison; expose methodology + sample
       sizes; measured results only, no hardcoded illustrative values.
