@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSectors, simulate, ingestItems } from '../api.js'
+import { getSectors, simulate, ingestItems, getBenchmark } from '../api.js'
 
 function SentimentCell({ v }) {
   if (v === null || v === undefined) return <span className="muted">null</span>
@@ -69,6 +69,97 @@ function ArticleAnalyzer() {
       )}
       {signals && signals.length === 0 && (
         <p className="muted">No signals produced.</p>
+      )}
+    </div>
+  )
+}
+
+// Model vs Lexicon comparison: measured benchmark over the labeled dev fixtures.
+// Shows accuracy, confusion matrix, per-class recall, and latency for each
+// backend. All numbers are measured live — never hardcoded. Fixtures are
+// synthetic dev labels, NOT a real-world accuracy claim.
+function BenchmarkPanel() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = async (refresh = false) => {
+    setLoading(true)
+    setError(null)
+    try {
+      setData(await getBenchmark(refresh))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const CLASSES = ['-1', '0', '1']
+  const LABEL = { '-1': 'neg', '0': 'neu', '1': 'pos' }
+
+  const renderBackend = (name, b, reason) => (
+    <div key={name} style={{ flex: 1, minWidth: 260 }}>
+      <h4 style={{ margin: '0.4rem 0' }}>{name}</h4>
+      {b ? (
+        <>
+          <table>
+            <tbody>
+              <tr><th>Accuracy</th><td>{b.accuracy != null ? `${(b.accuracy * 100).toFixed(1)}%` : '— (all abstained)'}</td></tr>
+              <tr><th>Scored</th><td>{b.scored} / {b.total}</td></tr>
+              <tr><th>Abstentions</th><td>{b.abstain}</td></tr>
+              <tr><th>Latency</th><td>{b.latency_ms_per_item} ms/item</td></tr>
+            </tbody>
+          </table>
+          <table>
+            <thead>
+              <tr><th>gold \\ pred</th>{CLASSES.map((c) => <th key={c}>{LABEL[c]}</th>)}</tr>
+            </thead>
+            <tbody>
+              {CLASSES.map((g) => (
+                <tr key={g}>
+                  <th>{LABEL[g]}</th>
+                  {CLASSES.map((p) => (
+                    <td key={p} style={g === p && b.confusion[g][p] > 0 ? { color: '#059669', fontWeight: 600 } : {}}>
+                      {b.confusion[g][p]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="muted">
+            recall: {CLASSES.map((c) => `${LABEL[c]} ${b.per_class_recall[c] != null ? `${(b.per_class_recall[c] * 100).toFixed(0)}%` : 'n/a'}`).join(' · ')}
+          </p>
+        </>
+      ) : (
+        <p className="muted">{reason || 'unavailable'}</p>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="panel">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Model vs Lexicon</h2>
+        <button className="action" onClick={() => load(true)} disabled={loading} style={{ marginTop: 0 }}>
+          {loading ? 'Running benchmark…' : 'Re-run'}
+        </button>
+      </div>
+      {error && <div className="error">{error}</div>}
+      {!data && !error && <p className="muted">Loading benchmark…</p>}
+      {data && (
+        <>
+          <p className="muted">
+            {data.methodology} Sample: {data.sample_size} fixtures · {data.hardware}.
+          </p>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            {renderBackend('lexicon', data.lexicon)}
+            {renderBackend('model', data.model, data.model_unavailable_reason)}
+          </div>
+        </>
       )}
     </div>
   )
@@ -158,6 +249,7 @@ export default function StrategyLab() {
       )}
     </div>
     <ArticleAnalyzer />
+    <BenchmarkPanel />
     </>
   )
 }
