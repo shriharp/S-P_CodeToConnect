@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import LineChart from '../components/LineChart.jsx'
 import { getWeightHistory, getPrices, runDemoReplay, getSectors } from '../api.js'
 
 // Overview / Command Center: portfolio KPIs, Weight Evolution Timeline with
-// real price overlay, and a one-click deterministic demo replay. This is the
-// primary demo screen.
+// real price overlay, and a one-click deterministic demo replay that ANIMATES
+// the weight changes over time (progressive reveal), so decisions are visibly
+// sequential rather than a static final snapshot.
 export default function Overview() {
   const [history, setHistory] = useState([])
   const [prices, setPrices] = useState({})
   const [error, setError] = useState(null)
   const [running, setRunning] = useState(false)
   const [selected, setSelected] = useState('AAPL')
+  const [visibleCount, setVisibleCount] = useState(null) // null = show all
+  const timers = useRef([])
 
   const load = async () => {
     try {
@@ -28,25 +31,43 @@ export default function Overview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected])
 
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
   const runReplay = async () => {
     setRunning(true)
     setError(null)
+    setVisibleCount(0)
     try {
       await runDemoReplay()
       await load()
+      // Animate: reveal one rebalance event at a time so weights visibly move.
+      timers.current.forEach(clearTimeout)
+      timers.current = []
+      let step = 0
+      const tick = () => {
+        step += 1
+        setVisibleCount(step)
+        if (step < 15) timers.current.push(setTimeout(tick, 350))
+        else timers.current.push(setTimeout(() => setVisibleCount(null), 600))
+      }
+      timers.current.push(setTimeout(tick, 200))
     } catch (e) {
       setError(e.message)
+      setVisibleCount(null)
     } finally {
       setRunning(false)
     }
   }
 
+  // Slice history to the animated prefix so the chart grows event by event.
+  const shown = visibleCount == null ? history : history.slice(0, visibleCount)
+
   // Weight series: one line per ticker across rebalance events.
   const tickers = history.length ? Object.keys(history[0].weights) : []
-  const labels = history.map((h) => h.timestamp.slice(5, 16).replace('T', ' '))
+  const labels = shown.map((h) => h.timestamp.slice(5, 16).replace('T', ' '))
   const weightSeries = tickers.map((t) => ({
     name: t,
-    values: history.map((h) => (h.weights[t] ?? 0) * 100),
+    values: shown.map((h) => (h.weights[t] ?? 0) * 100),
   }))
 
   // Price overlay: indexed to 100 at first point so it shares the weight axis.
@@ -63,7 +84,7 @@ export default function Overview() {
     ]
   })()
 
-  const latest = history.length ? history[history.length - 1] : null
+  const latest = shown.length ? shown[shown.length - 1] : null
   const kpis = latest
     ? Object.entries(latest.weights).sort((a, b) => b[1] - a[1]).slice(0, 3)
     : []
@@ -92,11 +113,13 @@ export default function Overview() {
           ))}
           <div className="kpi">
             <div className="kpi-label">Events</div>
-            <div className="kpi-value">{history.length}</div>
+            <div className="kpi-value">
+              {visibleCount == null ? history.length : `${shown.length}/${history.length}`}
+            </div>
           </div>
         </div>
 
-        {history.length > 0 && (
+        {shown.length > 0 && (
           <LineChart labels={labels} series={weightSeries} yFormat={(v) => `${v.toFixed(0)}%`} />
         )}
 
