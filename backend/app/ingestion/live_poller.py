@@ -69,10 +69,12 @@ def poll_live(
     except Exception as exc:  # degrade gracefully, never fabricate
         source_errors["news"] = f"{type(exc).__name__}: {exc}"
 
-    # Live social (StockTwits) — one shared item per symbol's stream
+    # Live social (StockTwits) — one shared item per symbol's stream.
+    # labeled_only keeps just posts StockTwits self-labeled Bullish/Bearish,
+    # cutting the ticker-spam noise that otherwise floods as Unknown/neutral.
     for sym in SOCIAL_SYMBOLS:
         try:
-            signals.extend(_keep_and_analyze(fetch_stocktwits(sym, limit=10)))
+            signals.extend(_keep_and_analyze(fetch_stocktwits(sym, limit=25, labeled_only=True)))
         except Exception as exc:
             source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
 

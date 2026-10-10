@@ -6,37 +6,42 @@ import StrategyLab from './views/StrategyLab.jsx'
 import System from './views/System.jsx'
 
 const TABS = [
-  { id: 'overview', label: 'Overview', C: Overview },
-  { id: 'signals', label: 'Signals', C: Signals },
-  { id: 'portfolio', label: 'Portfolio', C: Portfolio },
-  { id: 'lab', label: 'Strategy Lab', C: StrategyLab },
-  { id: 'system', label: 'System', C: System },
+  { id: 'overview', label: 'Overview', ico: '◧', C: Overview },
+  { id: 'signals', label: 'Signals', ico: '⚡', C: Signals },
+  { id: 'portfolio', label: 'Portfolio', ico: '▤', C: Portfolio },
+  { id: 'lab', label: 'Strategy Lab', ico: '⚗', C: StrategyLab },
+  { id: 'system', label: 'System', ico: '⚙', C: System },
 ]
 
 export default function App() {
   const [tab, setTab] = useState('overview')
   const Active = TABS.find((t) => t.id === tab).C
   return (
-    <div className="app">
-      <header>
-        <h1>Risk Engine Dashboard</h1>
-        <p className="muted">
-          NLP risk signals → mock portfolio rebalancing. Mock allocations for demonstration
-          only — not investment advice or predictions.
-        </p>
-      </header>
-      <div className="tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={tab === t.id ? 'active' : ''}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <Active />
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <h1>Risk Engine</h1>
+          <div className="tag">NLP signals · mock rebalancing</div>
+        </div>
+        <nav className="nav">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`nav-item ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span className="ico">{t.ico}</span>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-foot">
+          Mock allocations for demonstration only — not investment advice or predictions.
+        </div>
+      </aside>
+      <main className="content">
+        <Active />
+      </main>
     </div>
   )
 }

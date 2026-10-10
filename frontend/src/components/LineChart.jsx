@@ -3,8 +3,8 @@ import React from 'react'
 // Hand-rolled SVG multi-series line chart. No chart dependency (CPU-first,
 // minimal-deps rule). Pure presentational: takes series + an x label list.
 const PALETTE = [
-  '#0a5cff', '#e11d48', '#059669', '#d97706', '#7c3aed',
-  '#0891b2', '#db2777', '#65a30d', '#9333ea', '#475569',
+  '#d6002a', '#0d0d0d', '#0a7d55', '#d97706', '#7c3aed',
+  '#0891b2', '#8a6100', '#65a30d', '#9333ea', '#565656',
 ]
 
 export default function LineChart({ labels, series, height = 260, yFormat = (v) => v }) {

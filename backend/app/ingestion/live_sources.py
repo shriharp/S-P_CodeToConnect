@@ -92,11 +92,16 @@ def _parse_gdelt_date(raw: str | None) -> datetime | None:
         return None
 
 
-def fetch_stocktwits(symbol: str, limit: int = 20) -> list[RawSourceItem]:
+def fetch_stocktwits(symbol: str, limit: int = 20, labeled_only: bool = False) -> list[RawSourceItem]:
     """Live social posts for a symbol from StockTwits (free, no key).
 
     Each post carries its own Bullish/Bearish/None label; we keep the label on
     the item so downstream can cross-check NLP sentiment against the crowd label.
+
+    labeled_only: when True, keep only posts StockTwits itself labeled
+    Bullish/Bearish. Raw StockTwits is mostly ticker-spam ("$AAPL 🚀") with no
+    directional signal; filtering to self-labeled posts sharply cuts the noise
+    feeding the rebalancer.
     """
     data = _get_json(STOCKTWITS_URL.format(symbol=urllib.parse.quote(symbol)))
     messages = data.get("messages", [])
@@ -106,6 +111,9 @@ def fetch_stocktwits(symbol: str, limit: int = 20) -> list[RawSourceItem]:
         if not body:
             continue
         sentiment = (m.get("entities") or {}).get("sentiment") or {}
+        crowd_label = sentiment.get("basic")
+        if labeled_only and crowd_label not in ("Bullish", "Bearish"):
+            continue
         items.append(
             RawSourceItem(
                 provider=f"stocktwits:{m.get('user', {}).get('username', 'anon')}",
@@ -117,7 +125,7 @@ def fetch_stocktwits(symbol: str, limit: int = 20) -> list[RawSourceItem]:
             )
         )
         # stash crowd label on the pydantic model's private notes
-        items[-1].__dict__["crowd_sentiment"] = sentiment.get("basic")
+        items[-1].__dict__["crowd_sentiment"] = crowd_label
     return items
 
 

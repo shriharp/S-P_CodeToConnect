@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { getSignals, livePoll, getSignalsOverview } from '../api.js'
 import { CategoryCell, FlagList } from '../components/display.jsx'
+import Pagination, { usePagination } from '../components/Pagination.jsx'
+
+const PAGE_SIZE = 12
 
 function SentimentCell({ v }) {
   if (v === null || v === undefined) return <span className="muted">null</span>
@@ -25,41 +28,55 @@ function hotScore(s, nowMs) {
 
 // Drill-down: evidence, classifications, and the signal's own fields exactly as
 // the backend produced them (never fabricated).
-function SignalDetail({ signal }) {
+function SignalDetail({ signal, onClose }) {
   return (
-    <div className="detail">
-      <h3 style={{ marginTop: 0 }}>{signal.company_name} ({signal.ticker || 'unresolved'})</h3>
-      <table>
-        <tbody>
-          <tr><th>Event</th><td><CategoryCell signal={signal} /></td></tr>
-          <tr><th>Sentiment</th><td><SentimentCell v={signal.sentiment_score} /></td></tr>
-          <tr><th>Impact</th><td>{signal.impact_score ?? 'null'} / 10</td></tr>
-          <tr><th>Impact explanation</th><td>{signal.impact_explanation || '—'}</td></tr>
-          <tr><th>Status</th><td>{signal.analysis_status}</td></tr>
-          <tr><th>Source</th><td>{signal.source_type} · {signal.source_provider}</td></tr>
-          <tr>
-            <th>Link</th>
-            <td>
+    <div className="panel detail">
+      <div className="panel-head">
+        <div>
+          <h3>{signal.company_name} ({signal.ticker || 'unresolved'})</h3>
+          <div className="sub">
+            <ProvenanceBadge p={signal.provenance} /> · {signal.source_type} · {signal.source_provider}
+          </div>
+        </div>
+        <button className="ghost" onClick={onClose}>Close</button>
+      </div>
+      <div className="grid-2">
+        <table>
+          <tbody>
+            <tr><th>Event</th><td><CategoryCell signal={signal} /></td></tr>
+            <tr><th>Sentiment</th><td><SentimentCell v={signal.sentiment_score} /></td></tr>
+            <tr><th>Impact</th><td>{signal.impact_score ?? 'null'} / 10</td></tr>
+            <tr><th>Status</th><td>{signal.analysis_status}</td></tr>
+            <tr><th>Published</th><td>{signal.published_at || 'null'}</td></tr>
+            <tr><th>Method</th><td className="mono">{signal.analysis_method_version}</td></tr>
+          </tbody>
+        </table>
+        <div>
+          <div style={{ marginBottom: '0.6rem' }}>
+            <strong style={{ fontSize: '0.8rem' }}>Quality flags</strong>
+            <div style={{ marginTop: '0.25rem' }}><FlagList flags={signal.quality_flags} /></div>
+          </div>
+          <div>
+            <strong style={{ fontSize: '0.8rem' }}>Source link</strong>
+            <div style={{ marginTop: '0.25rem' }}>
               {signal.source_url
                 ? <a href={signal.source_url} target="_blank" rel="noreferrer">open original ↗</a>
                 : <span className="muted">none</span>}
-            </td>
-          </tr>
-          <tr><th>Provenance</th><td><ProvenanceBadge p={signal.provenance} /></td></tr>
-          <tr><th>Published</th><td>{signal.published_at || 'null'}</td></tr>
-          <tr><th>Method</th><td>{signal.analysis_method_version}</td></tr>
-        </tbody>
-      </table>
-      <div>
-        <strong>Quality flags:</strong>{' '}
-        <FlagList flags={signal.quality_flags} />
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <strong>Evidence excerpts:</strong>
+      {signal.impact_explanation && (
+        <p className="muted" style={{ marginTop: '0.75rem' }}>
+          <strong>Impact:</strong> {signal.impact_explanation}
+        </p>
+      )}
+      <div style={{ marginTop: '0.6rem' }}>
+        <strong style={{ fontSize: '0.8rem' }}>Evidence excerpts</strong>
         {signal.evidence_excerpts.length === 0 && <p className="muted">none extracted</p>}
         {signal.evidence_excerpts.map((e, i) => (
           <div className="excerpt" key={i}>
-            [{[...e.supports].join(', ')}] “{e.text}”
+            <span className="sup">{[...e.supports].join(', ')}</span>“{e.text}”
           </div>
         ))}
       </div>
@@ -79,7 +96,7 @@ export default function Signals() {
   const load = async () => {
     try {
       const [sigs, ov] = await Promise.all([
-        getSignals({ limit: 100 }),
+        getSignals({ limit: 200 }),
         getSignalsOverview(),
       ])
       setSignals(sigs)
@@ -91,7 +108,7 @@ export default function Signals() {
 
   useEffect(() => {
     load()
-    const t = setInterval(load, 5000) // poll for new signals
+    const t = setInterval(load, 10000) // poll for new signals
     return () => clearInterval(t)
   }, [])
 
@@ -114,26 +131,31 @@ export default function Signals() {
   const ordered = [...signals].sort((a, b) =>
     sort === 'hot' ? hotScore(b, nowMs) - hotScore(a, nowMs) : 0
   )
+  const { slice, page, setPage, total, pageSize } = usePagination(ordered, PAGE_SIZE)
   const errKeys = pollResult ? Object.keys(pollResult.source_errors || {}) : []
 
   return (
     <div>
+      <div className="page-head">
+        <h2>Signals</h2>
+        <p>Live-ingested news and social signals, analyzed and scored. Click a row to inspect its evidence.</p>
+      </div>
+
       <div className="panel">
-        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Live Ingestion</h2>
-        <p className="muted">
-          Pulls live news (GDELT), social (StockTwits), and prices (yfinance) — all free sources —
-          and runs them through the engine (provenance: live). Use the manual text analyzer in
-          Strategy Lab for ad-hoc input.
-        </p>
-        <button className="action" onClick={poll} disabled={polling} style={{ marginTop: 0 }}>
-          {polling ? 'Polling live sources…' : 'Poll live sources now'}
-        </button>
+        <div className="panel-head">
+          <div>
+            <h3>Live Ingestion</h3>
+            <div className="sub">GDELT news · StockTwits social · yfinance prices — all free sources</div>
+          </div>
+          <button className="action" onClick={poll} disabled={polling}>
+            {polling ? 'Polling…' : 'Poll live sources'}
+          </button>
+        </div>
         {pollResult && (
-          <p className="muted">
-            {pollResult.signals.length} new signal(s) · {pollResult.decision_event.consumed_signal_ids.length} consumed
-            {errKeys.length > 0 && (
-              <> · degraded: {errKeys.join(', ')}</>
-            )}
+          <p className="muted" style={{ margin: 0 }}>
+            {pollResult.signals.length} new signal(s) ·{' '}
+            {pollResult.decision_event.consumed_signal_ids.length} consumed
+            {errKeys.length > 0 && <> · degraded: {errKeys.join(', ')}</>}
           </p>
         )}
         {error && <div className="error">{error}</div>}
@@ -141,11 +163,12 @@ export default function Signals() {
 
       {overview && overview.total > 0 && (
         <div className="panel">
-          <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Market Risk Overview</h2>
-          <p className="muted">
-            Descriptive distributions over the {overview.total} stored signal(s). Counts are
-            computed from real signals; nulls are counted, never imputed.
-          </p>
+          <div className="panel-head">
+            <div>
+              <h3>Market Risk Overview</h3>
+              <div className="sub">Descriptive distributions over {overview.total} stored signals — nulls counted, never imputed</div>
+            </div>
+          </div>
           <div className="kpis">
             <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{overview.total}</div></div>
             <div className="kpi"><div className="kpi-label">Mean sentiment</div><div className="kpi-value">{overview.sentiment.mean ?? '—'}</div></div>
@@ -154,20 +177,20 @@ export default function Signals() {
             <div className="kpi"><div className="kpi-label">Impact null</div><div className="kpi-value">{overview.impact.null}</div></div>
           </div>
           <table>
-            <thead><tr><th>Event category</th><th>Count</th><th></th></tr></thead>
+            <thead><tr><th>Event category</th><th className="num">Count</th><th></th></tr></thead>
             <tbody>
               {Object.entries(overview.event_counts).map(([cat, n]) => (
                 <tr key={cat}>
                   <td>{cat}</td>
-                  <td>{n}</td>
-                  <td style={{ width: '40%' }}>
+                  <td className="num">{n}</td>
+                  <td style={{ width: '45%' }}>
                     <div className="bar"><div style={{ width: `${(n / overview.total) * 100}%` }} /></div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="muted">
+          <p className="muted" style={{ marginBottom: 0 }}>
             Sentiment split: {overview.sentiment.positive} positive · {overview.sentiment.neutral} neutral ·{' '}
             {overview.sentiment.negative} negative (of {overview.sentiment.scored} scored).
           </p>
@@ -175,48 +198,47 @@ export default function Signals() {
       )}
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '1.05rem' }}>Signal Feed</h2>
-          <div className="tabs" style={{ margin: 0 }}>
-            <button className={sort === 'hot' ? 'active' : ''} onClick={() => setSort('hot')}>Hot</button>
-            <button className={sort === 'newest' ? 'active' : ''} onClick={() => setSort('newest')}>Newest</button>
+        <div className="panel-head">
+          <div>
+            <h3>Signal Feed</h3>
+            <div className="sub">
+              {sort === 'hot'
+                ? 'Ranked by impact × recency — high-signal items first.'
+                : 'Chronological, newest first.'} Polls every 10s.
+            </div>
+          </div>
+          <div className="seg">
+            <button className={sort === 'hot' ? 'active' : ''} onClick={() => { setSort('hot'); setPage(1) }}>Hot</button>
+            <button className={sort === 'newest' ? 'active' : ''} onClick={() => { setSort('newest'); setPage(1) }}>Newest</button>
           </div>
         </div>
-        <p className="muted">
-          {sort === 'hot'
-            ? 'Ranked by impact × recency — high-signal items first, not just the newest.'
-            : 'Chronological, newest first.'} Polls every 5s.
-        </p>
         <table>
           <thead>
             <tr>
-              <th>Company</th><th>Sent.</th><th>Impact</th><th>Event</th>
-              <th>Provenance</th><th>Flags</th>
+              <th>Company</th><th className="num">Sent.</th><th className="num">Impact</th>
+              <th>Event</th><th>Provenance</th><th>Flags</th>
             </tr>
           </thead>
           <tbody>
-            {ordered.map((s) => (
+            {slice.map((s) => (
               <tr key={s.signal_id} className="clickable" onClick={() => setSelected(s)}>
                 <td>{s.company_name}</td>
-                <td><SentimentCell v={s.sentiment_score} /></td>
-                <td>{s.impact_score ?? 'null'}</td>
+                <td className="num"><SentimentCell v={s.sentiment_score} /></td>
+                <td className="num">{s.impact_score ?? '—'}</td>
                 <td><CategoryCell signal={s} /></td>
                 <td><ProvenanceBadge p={s.provenance} /></td>
                 <td><FlagList flags={s.quality_flags} /></td>
               </tr>
             ))}
             {ordered.length === 0 && (
-              <tr><td colSpan={6} className="muted">No signals yet — poll live sources or run a replay.</td></tr>
+              <tr><td colSpan={6}><div className="empty">No signals yet — poll live sources or run a replay.</div></td></tr>
             )}
           </tbody>
         </table>
+        <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
       </div>
 
-      {selected && (
-        <div className="panel">
-          <SignalDetail signal={selected} />
-        </div>
-      )}
+      {selected && <SignalDetail signal={selected} onClose={() => setSelected(null)} />}
     </div>
   )
 }
