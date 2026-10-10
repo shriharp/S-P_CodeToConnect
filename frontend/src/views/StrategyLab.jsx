@@ -24,6 +24,7 @@ function ArticleAnalyzer() {
         source_type: 'news',
         items: [{ id: `ui-${Date.now()}`, text }],
         provenance: 'live',
+        sentiment_backend: 'model',
       })
       setSignals(out)
     } catch (e) {

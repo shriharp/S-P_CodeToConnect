@@ -88,7 +88,7 @@ class IngestRequest(BaseModel):
     items: list[IngestItem] = Field(min_length=1)
     provenance: str = "live"
     record: bool = False
-    sentiment_backend: str = "lexicon"
+    sentiment_backend: str = "model"
     event_backend: str = "finetuned"
 
 
