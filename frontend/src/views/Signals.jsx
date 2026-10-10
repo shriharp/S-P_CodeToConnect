@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignals, livePoll } from '../api.js'
+import { getSignals, livePoll, getSignalsOverview } from '../api.js'
 import { CategoryCell, FlagList } from '../components/display.jsx'
 
 function SentimentCell({ v }) {
@@ -69,6 +69,7 @@ function SignalDetail({ signal }) {
 
 export default function Signals() {
   const [signals, setSignals] = useState([])
+  const [overview, setOverview] = useState(null)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
   const [polling, setPolling] = useState(false)
@@ -77,7 +78,12 @@ export default function Signals() {
 
   const load = async () => {
     try {
-      setSignals(await getSignals({ limit: 100 }))
+      const [sigs, ov] = await Promise.all([
+        getSignals({ limit: 100 }),
+        getSignalsOverview(),
+      ])
+      setSignals(sigs)
+      setOverview(ov)
     } catch (e) {
       setError(e.message)
     }
@@ -132,6 +138,41 @@ export default function Signals() {
         )}
         {error && <div className="error">{error}</div>}
       </div>
+
+      {overview && overview.total > 0 && (
+        <div className="panel">
+          <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Market Risk Overview</h2>
+          <p className="muted">
+            Descriptive distributions over the {overview.total} stored signal(s). Counts are
+            computed from real signals; nulls are counted, never imputed.
+          </p>
+          <div className="kpis">
+            <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{overview.total}</div></div>
+            <div className="kpi"><div className="kpi-label">Mean sentiment</div><div className="kpi-value">{overview.sentiment.mean ?? '—'}</div></div>
+            <div className="kpi"><div className="kpi-label">Mean impact</div><div className="kpi-value">{overview.impact.mean ?? '—'}</div></div>
+            <div className="kpi"><div className="kpi-label">Sentiment null</div><div className="kpi-value">{overview.sentiment.null}</div></div>
+            <div className="kpi"><div className="kpi-label">Impact null</div><div className="kpi-value">{overview.impact.null}</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Event category</th><th>Count</th><th></th></tr></thead>
+            <tbody>
+              {Object.entries(overview.event_counts).map(([cat, n]) => (
+                <tr key={cat}>
+                  <td>{cat}</td>
+                  <td>{n}</td>
+                  <td style={{ width: '40%' }}>
+                    <div className="bar"><div style={{ width: `${(n / overview.total) * 100}%` }} /></div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="muted">
+            Sentiment split: {overview.sentiment.positive} positive · {overview.sentiment.neutral} neutral ·{' '}
+            {overview.sentiment.negative} negative (of {overview.sentiment.scored} scored).
+          </p>
+        </div>
+      )}
 
       <div className="panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

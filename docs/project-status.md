@@ -58,9 +58,13 @@ deferred**, with files touched and tests run recorded on completion.
       display-only. Verified: /simulate leaves ledger+history unchanged;
       /rebalance still persists. Tests: `tests/test_simulate.py`.
       `backend/app/api/main.py`, `frontend/src/views/StrategyLab.jsx`.
-- [ ] **P1.3 Market Risk Overview** (rename of Impact & Sentiment Radar). Event-
-      category distributions, sentiment trends, impact distributions,
-      exposure-weighted risk — only where data supports it.
+- [x] **P1.3 Market Risk Overview.** DONE 2026-10-10. `GET /signals/overview`
+      computes descriptive distributions over persisted signals (event-category
+      counts, sentiment pos/neutral/neg split + mean, impact mean, null counts) —
+      counts only, nulls counted not imputed. Signals tab panel shows KPIs +
+      event-category bar chart. Exposure-weighted risk not implemented (no
+      exposure data at signal level; deliberately omitted rather than faked).
+      `backend/app/api/main.py`, `frontend/src/views/Signals.jsx`.
 - [ ] **P1.4 Portfolio Performance & Benchmarking.** Historical prices + allocation
       history → portfolio metrics; vs equal-weight and buy-and-hold baselines;
       turnover, transaction costs, drawdown where feasible; timestamp-valid

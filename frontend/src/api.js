@@ -34,6 +34,7 @@ export const getSignals = (params = {}) => {
   return get(`/signals${q ? `?${q}` : ''}`)
 }
 export const getSignalsCount = () => get('/signals/count')
+export const getSignalsOverview = () => get('/signals/overview')
 export const getLedger = (limit = 100) => get(`/ledger?limit=${limit}`)
 export const getWeightHistory = () => get('/portfolio/weight-history')
 export const getPrices = (tickers) =>
