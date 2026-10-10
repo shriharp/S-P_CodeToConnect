@@ -33,9 +33,8 @@ free data; a deterministic replay path keeps demos reproducible without a networ
 
 ## 2. Architecture & Tech Stack
 
-![Architecture](docs/architecture.drawio)
+[Architecture Diagram](docs/architecture.drawio)
 
-Editable diagram: `docs/architecture.drawio` (open with diagrams.net).
 
 **Data flow:** live sources → ingestion adapters → NLP pipeline (entity
 resolution, sentiment, event, impact rubric) → signal contract validation →

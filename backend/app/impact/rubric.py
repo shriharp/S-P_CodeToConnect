@@ -1,92 +1,23 @@
 """Deterministic financial-impact scoring (docs/impact-rubrik.md).
 
-Rules honored here:
+Split for modularity (2026-10-10):
+  - factors.py        -> ImpactFactors contract + FactorExtractor ABC
+  - deterministic.py  -> the current extractor impl (qualitative + quantified)
+  - rubric.py (this)  -> deterministic scoring only (score/explain), consuming
+                         ImpactFactors. A better financial-domain extractor can
+                         replace the impl without touching scoring.
+
+Rules honored:
 - Impact is magnitude only, never direction, probability, or confidence.
 - Factors must be explicitly present in the text; nothing is invented.
-- Abstention (None) whenever extracted facts could land in different bands.
+- Abstention (None) when no magnitude evidence exists.
 - Final score is computed by deterministic code, not a model.
-
-Factor extraction (MVP):
-- magnitude: largest explicitly quantified loss/exposure percentage.
-- breadth: site/partial scope vs company-wide scope cues.
-- duration: explicit persistence cues (multi-year, prolonged, permanent).
 """
 
-import re
-from dataclasses import dataclass, field
+from app.impact.deterministic import extract_factors
+from app.impact.factors import FactorExtractor, ImpactFactors
 
-_URL_RE = re.compile(r"https?://\S+|www\.\S+")
-
-PCT_PATTERNS = (
-    r"(?:cut|fell|fell by|down|drop(?:ped)?(?: by)?|declin(?:e|ed)(?: by)?|"
-    r"loss(?:es)? of|slump(?:ed)?(?: by)?|plunge(?:d)?(?: by)?|)"
-    r"\s*(-?\d+(?:\.\d+)?)\s*(?:%|percent)",
-    r"(-?\d+(?:\.\d+)?)\s*%\s*(?:drop|decline|fall|loss|cut)",
-)
-
-BREADTH_COMPANY_WIDE = (
-    "company-wide", "entire company", "all operations", "across the company",
-    "whole company", "global operations", "all plants", "full-year",
-)
-BREADTH_SITE = (
-    "one plant", "single plant", "a plant", "one site", "single site",
-    "a site", "factory in", "plant in", "one facility", "a facility",
-)
-DURATION_PERSISTENT = (
-    "multi-year", "multiyear", "permanently", "permanent", "prolonged",
-    "for years", "indefinitely", "several years",
-)
-CONTINUITY_CUES = (
-    "bankrupt", "insolven", "default", "cannot pay", "unable to pay",
-    "cease operations", "wind down", "solvency", "liquidat",
-)
-
-
-@dataclass
-class ImpactFactors:
-    max_loss_pct: float | None = None
-    breadth: str | None = None  # "site" | "company_wide"
-    persistent: bool = False
-    continuity_threat: bool = False
-    evidence: list[str] = field(default_factory=list)
-
-
-def extract_factors(text: str) -> ImpactFactors:
-    # Strip URLs before factor extraction: a CDN path like ".../default.png"
-    # is never impact evidence and would false-positive continuity cues.
-    lower = _URL_RE.sub(" ", text.lower())
-    factors = ImpactFactors()
-
-    pcts: list[float] = []
-    for pattern in PCT_PATTERNS:
-        for match in re.finditer(pattern, lower):
-            value = abs(float(match.group(1)))
-            pcts.append(value)
-            factors.evidence.append(match.group(0).strip())
-    if pcts:
-        factors.max_loss_pct = max(pcts)
-
-    for cue in BREADTH_COMPANY_WIDE:
-        if cue in lower:
-            factors.breadth = "company_wide"
-            factors.evidence.append(cue)
-            break
-    if factors.breadth is None:
-        for cue in BREADTH_SITE:
-            if cue in lower:
-                factors.breadth = "site"
-                factors.evidence.append(cue)
-                break
-
-    if any(cue in lower for cue in DURATION_PERSISTENT):
-        factors.persistent = True
-        factors.evidence.append("duration: persistent")
-
-    if any(cue in lower for cue in CONTINUITY_CUES):
-        factors.continuity_threat = True
-        factors.evidence.append("continuity threat cue")
-
-    return factors
+__all__ = ["ImpactFactors", "FactorExtractor", "extract_factors", "score", "explain"]
 
 
 def score(factors: ImpactFactors) -> int | None:
@@ -94,12 +25,30 @@ def score(factors: ImpactFactors) -> int | None:
     if factors.continuity_threat:
         return 9
 
-    if factors.max_loss_pct is None:
-        # No quantified exposure: only a clearly-bounded single-site,
-        # non-persistent event can be scored low; anything broader abstains.
-        if factors.breadth == "site" and not factors.persistent:
-            return 3
+    # Contrast/offsetting evidence: net impact indeterminate -> abstain, unless
+    # a hard anchor (a large quantified loss) exists (rubric rule 7).
+    if factors.contrasting and (factors.max_loss_pct is None or factors.max_loss_pct < 20):
         return None
+
+    if factors.max_loss_pct is None:
+        # No quantified exposure. Qualitative magnitude phrases now map to a
+        # band instead of abstaining (fixes "sales boom" -> null).
+        if factors.qual_magnitude == "high":
+            band_low = 7
+        elif factors.qual_magnitude == "moderate":
+            band_low = 5
+        elif factors.qual_magnitude == "low":
+            band_low = 3
+        elif factors.breadth == "site" and not factors.persistent:
+            band_low = 3  # clearly-bounded single-site event
+        else:
+            return None
+        # Scope/persistence can still raise within limits.
+        if factors.breadth == "company_wide" and band_low < 7:
+            band_low = min(band_low + 2, 8)
+        elif factors.persistent and band_low < 7:
+            band_low = min(band_low + 1, 8)
+        return band_low
 
     pct = factors.max_loss_pct
     if pct >= 50:
@@ -125,6 +74,8 @@ def explain(factors: ImpactFactors, impact: int) -> str:
     parts = []
     if factors.max_loss_pct is not None:
         parts.append(f"quantified loss/exposure of {factors.max_loss_pct:g}%")
+    if factors.qual_magnitude is not None:
+        parts.append(f"qualitative magnitude ({factors.qual_magnitude})")
     if factors.breadth == "company_wide":
         parts.append("company-wide breadth")
     elif factors.breadth == "site":
