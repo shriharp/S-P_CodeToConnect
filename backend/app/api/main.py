@@ -161,7 +161,17 @@ def signals_overview(store: SignalStore = Depends(get_store)) -> dict:
     null_sentiment = 0
     null_impact = 0
     for s in signals:
-        event_counts[s.event_category.value] = event_counts.get(s.event_category.value, 0) + 1
+        # Chatter grouping (matches frontend display rule): a social post with no
+        # distinct event but scored sentiment is chatter, not a bare "Unknown".
+        if (
+            s.source_type.value == "social"
+            and s.event_category.value == "Unknown"
+            and s.sentiment_score is not None
+        ):
+            cat = "Social chatter"
+        else:
+            cat = s.event_category.value
+        event_counts[cat] = event_counts.get(cat, 0) + 1
         provenance_counts[s.provenance.value] = provenance_counts.get(s.provenance.value, 0) + 1
         if s.sentiment_score is None:
             null_sentiment += 1
