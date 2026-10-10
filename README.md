@@ -78,10 +78,10 @@ Runtime: Python 3.11+ and Node 18+ on macOS/Linux/Windows.
 git clone <your-repo-url>
 cd <repo-folder>
 
-# Backend
+# Backend (base install)
 cd backend
 python -m venv .venv
-.venv/bin/pip install -r ../requirements.txt          # or: pip install -e ".[dev]"
+.venv/bin/pip install -r ../requirements.txt
 .venv/bin/python -m uvicorn app.api.main:app --port 8000
 
 # Frontend (in a second terminal)
@@ -93,6 +93,39 @@ npm run dev
 Open http://localhost:5173 — the Vite dev server proxies `/api` to the backend.
 
 Run tests: `cd backend && .venv/bin/python -m pytest`
+
+### Data: what's included vs what you regenerate
+
+The repo is set up so a fresh clone runs out of the box, offline:
+
+- **Included (committed):** market-price CSVs (`data/market_prices.csv`),
+  ticker/sector metadata, and the 40-item demo replay dataset
+  (`data/demo_news.jsonl`). The demo replay and market panels work with no
+  network and no model download.
+- **Not included (regenerate):** the fine-tuned event-classifier checkpoint
+  (~270MB) and its training data are gitignored to keep the repo small. They're
+  reproducible from the committed scripts.
+
+### Optional: model backends (recommended for the full experience)
+
+The base install runs entirely on the keyword/lexicon layer — no ML downloads
+needed, and event classification degrades gracefully to keywords. To enable the
+fine-tuned event classifier (default when available) and the model sentiment
+backend:
+
+```bash
+cd backend
+.venv/bin/pip install -r ../requirements.txt -r ../requirements-model.txt
+# or: .venv/bin/pip install -e ".[model]"
+
+# Generate training data + fine-tune the event classifier (CPU, a few minutes)
+.venv/bin/python -m scripts.generate_event_training_data
+.venv/bin/python -m scripts.finetune_event_classifier
+```
+
+Without these steps the app still runs — event classification falls back to the
+keyword table automatically (see `docs/model-evaluation.md` for measured
+accuracy of each backend).
 
 ## 5. Key Results & Domain Impact
 

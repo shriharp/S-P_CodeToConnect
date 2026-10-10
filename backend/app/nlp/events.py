@@ -54,7 +54,11 @@ def classify_event_hybrid(text: str) -> tuple[EventCategory, list[EvidenceExcerp
     fabricated), whichever backend chose the category.
     """
     scores = keyword_scores(text)
-    from app.nlp.event_model import classify_event_model
+    from app.nlp.event_model import available, classify_event_model
+
+    if not available():
+        # No transformers (base-requirements clone) -> keyword-only, never crash.
+        return classify_event(text)
 
     model_key, _conf = classify_event_model(text)
     try:
