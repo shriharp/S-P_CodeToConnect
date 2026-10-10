@@ -10,6 +10,7 @@ from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
 from app.replay import recorder
+from app.replay.demo_sequence import replay as run_demo_replay, weight_timeline
 from app.storage.ledger import RebalanceStore, SqliteRebalanceStore, event_from_result
 from app.storage.signals import SignalStore, SqliteSignalStore
 
@@ -210,3 +211,82 @@ def list_ledger(
 def weight_history(ledger: RebalanceStore = Depends(get_ledger)) -> list[dict]:
     """Chronological per-ticker weight series for the evolution timeline."""
     return ledger.weight_history()
+
+
+@app.get("/market/prices")
+def market_prices(tickers: str | None = None) -> dict:
+    """Real close-price history from committed /data CSVs (offline, no network).
+
+    Returns {ticker: {date: close}}. Optional comma-separated `tickers` filter.
+    """
+    from app.market.loader import load_prices
+
+    try:
+        prices = load_prices()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if tickers:
+        wanted = {t.strip().upper() for t in tickers.split(",") if t.strip()}
+        prices = {t: s for t, s in prices.items() if t in wanted}
+    return {t: {d.isoformat(): v for d, v in series.items()} for t, series in prices.items()}
+
+
+@app.get("/market/sectors")
+def market_sectors() -> dict:
+    """Sector + market-cap metadata per ticker (for exposure heatmap + seeding)."""
+    from app.market.loader import load_metadata
+
+    try:
+        metas = load_metadata()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        m.ticker: {"company_id": m.company_id, "sector": m.sector, "market_cap": m.market_cap}
+        for m in metas
+    }
+
+
+@app.post("/demo/replay", response_model=list[dict])
+def demo_replay(
+    ledger: RebalanceStore = Depends(get_ledger),
+    store: SignalStore = Depends(get_store),
+) -> list[dict]:
+    """Run the committed deterministic demo sequence offline.
+
+    Replays data/demo_news.jsonl through the real pipeline + rebalancer,
+    persisting each step's signals and decision event to the ledger. This is the
+    reproducible demo backbone: no network, no live inference timing.
+    """
+    from datetime import datetime
+
+    steps = run_demo_replay()
+    out: list[dict] = []
+    for i, step in enumerate(steps):
+        signals = step["signals"]
+        event = step["decision_event"]
+        for sig in signals:
+            store.save(sig)
+        ts = datetime.fromisoformat(step["published_at"].replace("Z", "+00:00"))
+        event_id = f"demo-{i:02d}-{step['item_id']}"
+        ledger.append(event_from_result(event, event_id, ts))
+        out.append(
+            {
+                "item_id": step["item_id"],
+                "published_at": step["published_at"],
+                "event_id": event_id,
+                "signals": [s.model_dump() for s in signals],
+                "final_weights": event.proposed_weights,
+                "consumed_signal_ids": event.consumed_signal_ids,
+                "decisions": [
+                    {
+                        "signal_id": d.signal_id,
+                        "ticker": d.ticker,
+                        "decision": d.decision,
+                        "reason": d.reason,
+                        "final_weight": d.final_weight,
+                    }
+                    for d in event.decisions
+                ],
+            }
+        )
+    return out
