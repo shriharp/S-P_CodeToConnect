@@ -29,7 +29,7 @@ SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM")  # subset to keep poll weight low
 def poll_live(
     portfolio: Portfolio | None = None,
     news_query: str = DEFAULT_NEWS_QUERY,
-    sentiment_backend: str = "lexicon",
+    sentiment_backend: str = "model",
 ) -> dict:
     """One live ingestion cycle across all three free sources.
 
@@ -46,7 +46,8 @@ def poll_live(
         for item in fetch_gdelt_news(news_query, max_records=10):
             signals.extend(
                 analyze_item(item, provenance=Provenance.live.value,
-                             sentiment_backend=sentiment_backend)
+                             sentiment_backend=sentiment_backend,
+                             ingested_at=now)
             )
     except Exception as exc:  # degrade gracefully, never fabricate
         source_errors["news"] = f"{type(exc).__name__}: {exc}"
@@ -57,7 +58,8 @@ def poll_live(
             for item in fetch_stocktwits(sym, limit=10):
                 signals.extend(
                     analyze_item(item, provenance=Provenance.live.value,
-                                 sentiment_backend=sentiment_backend)
+                                 sentiment_backend=sentiment_backend,
+                                 ingested_at=now)
                 )
         except Exception as exc:
             source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
