@@ -34,15 +34,17 @@ deferred**, with files touched and tests run recorded on completion.
 - [ ] **P0.5 Multi-Company Attribution.** Article → multiple company signals,
       each with its own sentiment/impact/classification/evidence; surface
       contradictory evidence where supported.
-- [~] **P0.6 Data & reproducibility.** PARTIAL 2026-10-10. yfinance integration
-      DONE: offline loader + fetch script + committed `/data` CSVs (830 real price
-      rows, 10-ticker metadata w/ sector + market cap). Demo seeds portfolio from
-      real market caps, capped to respect MAX_WEIGHT (Option A). yfinance is
-      Apache-2.0 (license verified). Runtime never touches network.
+- [x] **P0.6 Data & reproducibility.** DONE 2026-10-10. yfinance integration:
+      offline loader + fetch script + committed `/data` CSVs (830 real price rows,
+      10-ticker metadata w/ sector + market cap). Demo seeds portfolio from real
+      market caps, capped to respect MAX_WEIGHT (Option A). Committed deterministic
+      demo replay sequence (`data/demo_news.jsonl`, 15 items) drives the full
+      pipeline + rebalancer offline with provenance=replay. yfinance Apache-2.0
+      (verified). Runtime never touches network.
       Files: `app/market/loader.py`, `scripts/fetch_market_data.py`, `data/*.csv`,
-      `app/portfolio/demo.py`. Tests: 7 in `tests/test_market_loader.py`.
-      REMAINING: committed deterministic demo replay sequence (scripted end-to-end
-      walkthrough dataset). Still to do.
+      `data/demo_news.jsonl`, `app/replay/demo_sequence.py`, `app/portfolio/demo.py`,
+      `app/nlp/pipeline.py` (ingested_at override for replay).
+      Tests: 7 market-loader + 8 demo-sequence.
 
 ## Approved Scope — P1 (high-value dashboard)
 
@@ -216,6 +218,12 @@ P0/P1/P2 dashboard scope:
   loader + fetch script + committed /data CSVs. Demo seeds from real market
   caps, capped via Option A (respect MAX_WEIGHT, preserve ordering). 7 new
   loader tests. Suite at 83. P0.6 still pending the demo replay sequence.
+- 2026-10-10: P0.6 demo replay sequence (feat/demo-replay). Committed
+  data/demo_news.jsonl (15 items) + app/replay/demo_sequence.py drives the real
+  pipeline + rebalancer deterministically, offline, provenance=replay. Fixed a
+  replay freshness bug: analyze_item now accepts an ingested_at override so
+  replay stamps signals with event time (live default unchanged). 8 new tests.
+  Suite at 91. Phase 1 backend foundations now COMPLETE (P0.1 + P0.6).
 
 ## Status Maintenance Rules
 
