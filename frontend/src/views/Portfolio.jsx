@@ -25,16 +25,28 @@ export default function Portfolio() {
   const latest = history.length ? history[history.length - 1] : null
   const initial = history.length ? history[0] : null
 
-  // Sector exposure: aggregate latest weights by sector.
-  const sectorExposure = (() => {
-    if (!latest) return {}
+  // Aggregate a weights map by sector.
+  const bySector = (weights) => {
+    if (!weights) return {}
     const acc = {}
-    for (const [t, w] of Object.entries(latest.weights)) {
+    for (const [t, w] of Object.entries(weights)) {
       const sec = sectors[t]?.sector || 'Unknown'
       acc[sec] = (acc[sec] || 0) + w
     }
     return acc
-  })()
+  }
+
+  const sectorStart = bySector(initial?.weights)
+  const sectorNow = bySector(latest?.weights)
+  const sectorRows = Object.keys(sectorNow)
+    .map((sec) => ({
+      sector: sec,
+      start: sectorStart[sec] || 0,
+      now: sectorNow[sec] || 0,
+      delta: (sectorNow[sec] || 0) - (sectorStart[sec] || 0),
+    }))
+    .sort((a, b) => b.now - a.now)
+  const maxNow = Math.max(...sectorRows.map((r) => r.now), 0.01)
 
   return (
     <div>
@@ -69,18 +81,35 @@ export default function Portfolio() {
       </div>
 
       <div className="panel">
-        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Sector Exposure</h2>
-        <p className="muted">Latest weights aggregated by sector (real sector metadata).</p>
-        {Object.keys(sectorExposure).length ? (
+        <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Sector Exposure Heatmap</h2>
+        <p className="muted">
+          Aggregated sector weights from the first to the latest rebalance. Bar length =
+          current exposure; shading intensifies with concentration. These are target
+          allocations, not executed holdings.
+        </p>
+        {sectorRows.length ? (
           <table>
-            <thead><tr><th>Sector</th><th>Exposure</th><th></th></tr></thead>
+            <thead>
+              <tr><th>Sector</th><th>Start</th><th>Now</th><th>Δ</th><th>Concentration</th></tr>
+            </thead>
             <tbody>
-              {Object.entries(sectorExposure).sort((a, b) => b[1] - a[1]).map(([sec, w]) => (
-                <tr key={sec}>
-                  <td>{sec}</td>
-                  <td>{pct(w)}</td>
+              {sectorRows.map((r) => (
+                <tr key={r.sector}>
+                  <td>{r.sector}</td>
+                  <td className="muted">{pct(r.start)}</td>
+                  <td>{pct(r.now)}</td>
+                  <td className={r.delta > 1e-6 ? 'pos' : r.delta < -1e-6 ? 'neg' : 'muted'}>
+                    {r.delta > 1e-6 ? '+' : ''}{(r.delta * 100).toFixed(2)} pp
+                  </td>
                   <td style={{ width: '40%' }}>
-                    <div className="bar"><div style={{ width: `${w * 100}%` }} /></div>
+                    <div className="bar">
+                      <div
+                        style={{
+                          width: `${(r.now / maxNow) * 100}%`,
+                          opacity: 0.45 + 0.55 * (r.now / maxNow),
+                        }}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

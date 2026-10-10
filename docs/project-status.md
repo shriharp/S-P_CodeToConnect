@@ -45,9 +45,12 @@ deferred**, with files touched and tests run recorded on completion.
 
 ## Approved Scope — P1 (high-value dashboard)
 
-- [ ] **P1.1 Sector Exposure Heatmap.** Add sector metadata for existing 10
-      tickers; sector exposure before/after rebalance. Sector concentration
-      *constraints* stay a separate policy feature.
+- [x] **P1.1 Sector Exposure Heatmap.** DONE 2026-10-10. Aggregates the 10
+      tickers' weights by sector (real yfinance sector metadata) from first to
+      latest rebalance: Start / Now / Δ columns plus a concentration bar whose
+      length + opacity scale with exposure. Sector concentration *constraints*
+      remain a separate policy feature (not implemented, by design).
+      `frontend/src/views/Portfolio.jsx`.
 - [x] **P1.2 Unified What-If / Risk Policy Simulator.** DONE 2026-10-10. Added
       read-only `POST /simulate` — same real rebalancer engine (caps, gates,
       renormalization) but no ledger append, so experiments never pollute the
