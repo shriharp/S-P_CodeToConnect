@@ -19,6 +19,8 @@ from app.ingestion.live_sources import (
     fetch_live_quotes,
     fetch_reddit_rss,
     fetch_sec_filings,
+    fetch_public_rss,
+    RSS_FEEDS,
     fetch_stocktwits,
 )
 from app.nlp.pipeline import analyze_item
@@ -57,7 +59,10 @@ def poll_live(
     signals = []
     source_errors: dict[str, str] = {}
     skipped_seen = 0
-    fetched_counts = {"gdelt_news": 0, "sec_edgar": 0, "stocktwits": 0, "reddit": 0}
+    fetched_counts = {
+        "gdelt_news": 0, "sec_edgar": 0, "company_rss": 0,
+        "stocktwits": 0, "reddit": 0,
+    }
 
     def _keep_and_analyze(items):
         nonlocal skipped_seen
@@ -104,6 +109,22 @@ def poll_live(
                 signals.extend(_keep_and_analyze(items))
             except Exception as exc:
                 source_errors[f"sec:{symbol}"] = f"{type(exc).__name__}: {exc}"
+
+    # Explicitly allowlisted public newsroom feeds. Each feed is isolated so a
+    # provider outage does not suppress SEC or social ingestion.
+    with ThreadPoolExecutor(max_workers=len(RSS_FEEDS)) as executor:
+        futures = {
+            executor.submit(fetch_public_rss, provider, url, 10): provider
+            for provider, url in RSS_FEEDS.items()
+        }
+        for future in as_completed(futures):
+            provider = futures[future]
+            try:
+                items = future.result()
+                fetched_counts["company_rss"] += len(items)
+                signals.extend(_keep_and_analyze(items))
+            except Exception as exc:
+                source_errors[f"rss:{provider}"] = f"{type(exc).__name__}: {exc}"
 
     # Live social (StockTwits) — one shared item per symbol's stream.
     # labeled_only keeps just posts StockTwits self-labeled Bullish/Bearish,
@@ -169,6 +190,7 @@ def poll_live(
             "analyzed": {
                 "gdelt_news": sum(1 for s in signals if s.source_provider == "gdelt"),
                 "sec_edgar": sum(1 for s in signals if s.source_provider == "sec:edgar"),
+                "company_rss": sum(1 for s in signals if s.source_provider.startswith("rss:")),
                 "stocktwits": sum(1 for s in signals if s.source_provider.startswith("stocktwits:")),
                 "reddit": sum(1 for s in signals if s.source_provider == "reddit:r/stocks"),
             },

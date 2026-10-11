@@ -54,7 +54,7 @@ def get_ingestion_state() -> IngestionState:
         _ingestion_state = IngestionState(INGESTION_STATE_PATH)
         for provider, interval in (
             ("gdelt", 300), ("sec:edgar", 300), ("stocktwits", 30),
-            ("reddit:r/stocks", 120), ("yfinance", 30)
+            ("reddit:r/stocks", 120), ("company:rss", 300), ("yfinance", 30)
         ):
             _ingestion_state.ensure_provider(provider, interval)
     return _ingestion_state
@@ -581,6 +581,7 @@ def live_poll(
     provider_map = {
         "gdelt_news": "gdelt",
         "sec_edgar": "sec:edgar",
+        "company_rss": "company:rss",
         "stocktwits": "stocktwits",
         "reddit": "reddit:r/stocks",
     }
@@ -597,6 +598,15 @@ def live_poll(
                 None,
             )
             if key == "sec_edgar"
+            else next(
+                (
+                    message
+                    for name, message in out.get("source_errors", {}).items()
+                    if name.startswith("rss:")
+                ),
+                None,
+            )
+            if key == "company_rss"
             else out.get("source_errors", {}).get(f"social:{provider.split(':')[0]}")
         )
         state.update_provider(

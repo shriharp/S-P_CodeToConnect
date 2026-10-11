@@ -25,6 +25,12 @@ from app.ingestion.retry import request_with_backoff
 
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+RSS_FEEDS = {
+    "apple": "https://www.apple.com/newsroom/rss-feed.rss",
+    "microsoft": "https://news.microsoft.com/feed/",
+    "exxon": "https://corporate.exxonmobil.com/news/news-releases/rss",
+    "pfizer": "https://www.pfizer.com/news/rss.xml",
+}
 STOCKTWITS_URL = "https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json"
 REDDIT_RSS_URL = "https://www.reddit.com/r/stocks/search.rss"
 GDELT_MIN_INTERVAL = 6.0  # seconds between requests (GDELT asks for >=5s; be safe)
@@ -149,6 +155,66 @@ def fetch_sec_filings(
     return rows
 
 
+def fetch_public_rss(provider: str, url: str, limit: int = 10) -> list[RawSourceItem]:
+    """Fetch an explicitly allowlisted public RSS or Atom feed.
+
+    Feed content is retained only as the normalized headline/title needed by
+    the signal pipeline. Arbitrary URL fetching is intentionally unsupported.
+    """
+    if provider not in RSS_FEEDS or RSS_FEEDS[provider] != url:
+        raise ValueError(f"RSS provider is not allowlisted: {provider}")
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/atom+xml"},
+    )
+    response = request_with_backoff(
+        lambda timeout: urllib.request.urlopen(request, timeout=timeout),
+        timeout=_TIMEOUT,
+    )
+    with response as resp:
+        root = ET.fromstring(resp.read())
+    items: list[RawSourceItem] = []
+    atom_ns = {"atom": "http://www.w3.org/2005/Atom"}
+    entries = root.findall(".//item") or root.findall("atom:entry", atom_ns)
+    for index, entry in enumerate(entries[:limit]):
+        title = (
+            entry.findtext("title", default="")
+            or entry.findtext("atom:title", default="", namespaces=atom_ns)
+        ).strip()
+        if not title:
+            continue
+        link_node = entry.find("link")
+        atom_link = entry.find("atom:link", atom_ns)
+        link = (
+            link_node.text.strip() if link_node is not None and link_node.text else None
+        ) or (atom_link.attrib.get("href") if atom_link is not None else None)
+        published_raw = (
+            entry.findtext("pubDate")
+            or entry.findtext("published")
+            or entry.findtext("updated")
+            or entry.findtext("atom:published", namespaces=atom_ns)
+            or entry.findtext("atom:updated", namespaces=atom_ns)
+        )
+        published = _parse_iso(published_raw) or _parse_rfc2822(published_raw)
+        external_id = (
+            entry.findtext("guid")
+            or entry.findtext("atom:id", namespaces=atom_ns)
+            or link
+            or f"{provider}:{index}:{title}"
+        )
+        items.append(
+            RawSourceItem(
+                provider=f"rss:{provider}",
+                source_type=SourceType.news,
+                external_id=external_id.strip(),
+                text=title,
+                url=link,
+                published_at=published,
+            )
+        )
+    return items
+
+
 def _parse_gdelt_date(raw: str | None) -> datetime | None:
     if not raw:
         return None
@@ -241,6 +307,10 @@ def fetch_reddit_rss(query: str, limit: int = 20) -> list[RawSourceItem]:
 def _parse_iso(raw: str | None) -> datetime | None:
     if not raw:
         return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def _parse_date(raw: str | None) -> datetime | None:
@@ -250,9 +320,17 @@ def _parse_date(raw: str | None) -> datetime | None:
         return datetime.strptime(raw, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except ValueError:
         return None
+
+
+def _parse_rfc2822(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    from email.utils import parsedate_to_datetime
+
     try:
-        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
+        parsed = parsedate_to_datetime(raw)
+        return parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError, IndexError):
         return None
 
 
