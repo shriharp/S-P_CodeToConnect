@@ -10,6 +10,7 @@ contributes nothing this cycle) rather than fabricating data.
 """
 
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.core.signal_contract import Provenance
 from app.ingestion.live_sources import (
@@ -25,7 +26,7 @@ from app.portfolio.rebalancer import Portfolio, RebalanceResult, rebalance
 
 DEFAULT_NEWS_QUERY = "apple OR microsoft OR jpmorgan OR pfizer OR exxon"
 SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM", "XOM", "PG", "KO", "JNJ", "WMT", "CVX", "PFE")
-REDDIT_QUERY = "AAPL OR MSFT OR JPM OR XOM OR PG OR KO OR JNJ OR WMT OR CVX OR PFE"
+REDDIT_QUERY = "Apple OR Microsoft OR JPMorgan OR Exxon OR Procter Gamble OR Coca-Cola OR Johnson Johnson OR Walmart OR Chevron OR Pfizer"
 
 
 def poll_live(
@@ -79,13 +80,22 @@ def poll_live(
     # Live social (StockTwits) — one shared item per symbol's stream.
     # labeled_only keeps just posts StockTwits self-labeled Bullish/Bearish,
     # cutting the ticker-spam noise that otherwise floods as Unknown/neutral.
-    for sym in SOCIAL_SYMBOLS:
-        try:
-            items = fetch_stocktwits(sym, limit=25, labeled_only=True)
-            fetched_counts["stocktwits"] += len(items)
-            signals.extend(_keep_and_analyze(items))
-        except Exception as exc:
-            source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
+    # These requests are independent. Fetching them concurrently avoids making
+    # users wait for ten sequential network timeouts while preserving the
+    # existing per-symbol error reporting.
+    with ThreadPoolExecutor(max_workers=len(SOCIAL_SYMBOLS)) as executor:
+        futures = {
+            executor.submit(fetch_stocktwits, sym, 25, True): sym
+            for sym in SOCIAL_SYMBOLS
+        }
+        for future in as_completed(futures):
+            sym = futures[future]
+            try:
+                items = future.result()
+                fetched_counts["stocktwits"] += len(items)
+                signals.extend(_keep_and_analyze(items))
+            except Exception as exc:
+                source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
 
     # Public Reddit RSS is optional enrichment. It has no native sentiment
     # label, so sentiment remains an NLP inference with normal quality rules.

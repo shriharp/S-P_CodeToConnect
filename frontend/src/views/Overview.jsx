@@ -36,11 +36,11 @@ export default function Overview() {
           ...ev,
           causes: ev.decisions
             .filter((d) => d.original_weight != null && d.final_weight != null)
-            .map((d) => {
+            .map((d, decisionIndex) => {
               const s = byId.get(d.signal_id) || {}
               const delta = d.final_weight - d.original_weight
               return {
-                key: `${ev.event_id}-${d.signal_id}`,
+                key: `${ev.event_id}-${d.signal_id}-${decisionIndex}`,
                 ticker: d.ticker,
                 decision: d.decision,
                 delta,

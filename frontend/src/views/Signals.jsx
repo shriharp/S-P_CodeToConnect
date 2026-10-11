@@ -112,7 +112,11 @@ export default function Signals({ demoMode = false }) {
       loadDemo()
     }
     const t = setInterval(load, 10000) // poll for new signals
-    return () => clearInterval(t)
+    const liveRefresh = demoMode ? null : setInterval(poll, 90000)
+    return () => {
+      clearInterval(t)
+      if (liveRefresh) clearInterval(liveRefresh)
+    }
   }, [demoMode])
 
   const poll = async () => {
@@ -164,15 +168,22 @@ export default function Signals({ demoMode = false }) {
             {demoMode ? 'Load demo corpus' : (polling ? 'Polling...' : 'Poll live sources')}
           </button>
         </div>
+        {polling && (
+          <div className="ingestion-progress" role="status" aria-live="polite">
+            <div className="progress-track"><div className="progress-indeterminate" /></div>
+            <span>Fetching news, social posts, Reddit RSS, and market prices. This can take up to a minute because providers enforce rate limits.</span>
+          </div>
+        )}
         {pollResult && (
-          <p className="muted" style={{ margin: 0 }}>
-            {pollResult.signals.length} new signal(s) ·{' '}
-            {pollResult.decision_event.consumed_signal_ids.length} consumed
+          <div className="ingestion-summary">
+            <strong>Latest live poll</strong>
+            <span>{pollResult.signals.length} new signals analyzed</span>
+            <span>{pollResult.decision_event.consumed_signal_ids.length} signals used for allocation</span>
             {pollResult.source_counts?.fetched?.reddit != null && (
-              <> | Reddit RSS: {pollResult.source_counts.fetched.reddit} fetched, {pollResult.source_counts.analyzed.reddit} analyzed, {pollResult.skipped_seen} already seen</>
+              <span>Reddit RSS: {pollResult.source_counts.fetched.reddit} fetched, {pollResult.source_counts.analyzed.reddit} analyzed, {pollResult.skipped_seen} already seen</span>
             )}
-            {errKeys.length > 0 && <> · degraded: {errKeys.join(', ')}</>}
-          </p>
+            {errKeys.length > 0 && <span className="ingestion-warning">Unavailable or rate-limited: {errKeys.join(', ')}</span>}
+          </div>
         )}
         {error && <div className="error">{error}</div>}
       </div>

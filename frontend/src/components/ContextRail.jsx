@@ -31,9 +31,9 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
 
       <section className="rail-card">
         <div className="rail-label">Signal quality</div>
-        <div className="rail-stat">{qualityRate == null ? 'No data' : `${qualityRate}% scored fields`}</div>
+        <div className="rail-stat">{qualityRate == null ? 'No data' : `${qualityRate}% field completeness`}</div>
         <p className="muted">
-          {total ? `${total} stored signals. Null values remain null.` : 'Poll live sources or load the demo corpus.'}
+          {total ? `${total} stored signals. This measures usable scores, not model accuracy.` : 'Poll live sources or load the demo corpus.'}
         </p>
       </section>
 

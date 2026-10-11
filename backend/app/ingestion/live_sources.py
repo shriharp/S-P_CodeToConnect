@@ -140,7 +140,12 @@ def fetch_reddit_rss(query: str, limit: int = 20) -> list[RawSourceItem]:
     RSS is public and keyless, but it carries no authoritative sentiment label;
     the NLP pipeline must infer sentiment from the retained title/body.
     """
-    params = urllib.parse.urlencode({"q": query, "restrict_sr": "1", "sort": "new"})
+    params = urllib.parse.urlencode({
+        "q": query,
+        "restrict_sr": "1",
+        "sort": "new",
+        "t": "day",
+    })
     req = urllib.request.Request(
         f"{REDDIT_RSS_URL}?{params}",
         headers={"User-Agent": USER_AGENT, "Accept": "application/atom+xml"},
