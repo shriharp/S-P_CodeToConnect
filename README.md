@@ -91,6 +91,26 @@ npm run dev
 
 Open http://localhost:5173 — the Vite dev server proxies `/api` to the backend.
 
+### Optional background ingestion scheduler
+
+The default backend mode is manual: the Signals tab can trigger an immediate
+live poll, and while that tab is open it periodically refreshes live sources.
+To keep polling independently of the browser, stop the backend and restart it
+with the scheduler enabled:
+
+```bash
+cd backend
+INGESTION_SCHEDULER_ENABLED=true \
+INGESTION_INTERVAL_SECONDS=90 \
+.venv/bin/python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+```
+
+`INGESTION_INTERVAL_SECONDS` controls the combined ingestion cycle. The System
+tab and the right-side ingestion runtime panel show whether the scheduler is
+running. This scheduler stores provider health, deduplicates source items, and
+continues polling after the browser is closed. Set
+`INGESTION_SCHEDULER_ENABLED=false` or omit it to return to manual mode.
+
 Run tests: `cd backend && .venv/bin/python -m pytest`
 
 ### Data: what's included vs what you regenerate

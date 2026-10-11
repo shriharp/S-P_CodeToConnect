@@ -55,7 +55,9 @@ export default function Portfolio({ demoMode = false }) {
       now: sectorNow[sec] || 0,
       delta: (sectorNow[sec] || 0) - (sectorStart[sec] || 0),
     }))
-    .sort((a, b) => b.now - a.now)
+    // Keep a stable presentation order across live/demo scopes. Sorting by
+    // current exposure made the table jump whenever the mode changed.
+    .sort((a, b) => a.sector.localeCompare(b.sector))
   const maxDelta = Math.max(...sectorRows.map((r) => Math.abs(r.delta)), 0.01)
 
   // Paginate individual ticker decisions, not rebalance event headings.

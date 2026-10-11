@@ -392,3 +392,18 @@ integration + `/data`, with tests for portfolio invariants and ledger correctnes
   independent of the browser.
 - Validation: full backend suite (138 passed), frontend production build, and
   `git diff --check`.
+
+## P0.16 Scheduler onboarding and stable portfolio presentation
+
+- Added the exact background scheduler startup command and manual-mode
+  behavior to `README.md`.
+- Sector exposure now uses deterministic alphabetical ordering in both live and
+  demo scopes, instead of sorting by current exposure and moving rows between
+  modes.
+- Decision: demo replay should not be silently substituted into live Overview.
+  It is provenance-labeled historical replay with curated evidence and a
+  different signal distribution; showing it as live would overstate current
+  source coverage and policy actionability. It can be used as a clearly
+  labeled reference/baseline view instead.
+- Validation: full backend suite (138 passed), frontend production build, and
+  `git diff --check`.
