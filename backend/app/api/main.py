@@ -260,7 +260,7 @@ def list_signals(
         signals = [
             s for s in signals
             if s.provenance.value == "live"
-            and s.source_provider not in {"strategy-lab", "test", "unknown"}
+            and s.source_provider not in {"strategy-lab", "test"}
         ]
     elif dashboard != "all":
         raise HTTPException(status_code=422, detail="invalid dashboard scope")

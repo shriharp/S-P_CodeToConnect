@@ -86,7 +86,7 @@ def test_dashboard_scopes_keep_demo_rows_out_of_live_view():
     assert demo_signals
     assert all(signal["provenance"] == "replay" for signal in demo_signals)
     assert all(signal["provenance"] == "live" for signal in live_signals)
-    assert all(signal["source_provider"] not in {"strategy-lab", "test", "unknown"} for signal in live_signals)
+    assert all(signal["source_provider"] not in {"strategy-lab", "test"} for signal in live_signals)
 
 
 def test_weight_history_excludes_no_change_events():

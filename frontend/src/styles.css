@@ -148,9 +148,18 @@ textarea, input[type='text'] {
 textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 select { font: inherit; padding: 0.4rem 0.6rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
 .ticker-picker { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; max-width: 520px; }
+.chart-with-controls { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.chart-with-controls > svg { flex: 1 1 auto; min-width: 0; }
+.chart-controls { flex: 0 1 230px; align-content: center; }
+.chart-controls .muted { flex-basis: 100%; text-align: right; }
 .ticker-chip { padding: 0.35rem 0.6rem; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font-size: 0.78rem; }
 .ticker-chip:hover { border-color: var(--accent); color: var(--accent-dark); }
 .ticker-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
+@media (max-width: 900px) {
+  .chart-with-controls { display: block; }
+  .chart-controls { max-width: none; margin-top: 0.5rem; justify-content: flex-start; }
+  .chart-controls .muted { flex-basis: auto; text-align: left; }
+}
 .controls { display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; margin: 0.5rem 0; }
 .controls label { font-size: 0.85rem; color: var(--text-muted); }
 

@@ -108,7 +108,7 @@ export default function System() {
           <tbody>
             <tr>
               <td><span className="prov prov-live">live</span></td>
-              <td className="muted">Real inference on text submitted via /analyze, /ingest, or a live source poll.</td>
+                  <td className="muted">Real inference on text submitted via /analyze, /ingest, or a live source poll. If no provider is supplied, the source is labeled <code>unknown</code> rather than invented.</td>
             </tr>
             <tr>
               <td><span className="prov prov-replay">replay</span></td>

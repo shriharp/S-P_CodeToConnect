@@ -14,6 +14,7 @@ export default function Overview({ demoMode = false }) {
   const [selected, setSelected] = useState(['AAPL'])
   const [weightSelected, setWeightSelected] = useState([])
   const [hoveredWeight, setHoveredWeight] = useState(null)
+  const [hoveredPrice, setHoveredPrice] = useState(null)
   const [activeIdx, setActiveIdx] = useState(0)
 
   const load = async () => {
@@ -89,7 +90,7 @@ export default function Overview({ demoMode = false }) {
     const first = Object.values(series)[0]
     if (!first) return []
     return [{
-      name: `${ticker} price (idx)`,
+      name: ticker,
       values: priceDates.map((date) => (series[date] == null ? null : (series[date] / first) * 100)),
     }]
   })
@@ -135,32 +136,34 @@ export default function Overview({ demoMode = false }) {
               </div>
             </div>
 
-            <div className="ticker-picker" aria-label="Weight timeline stocks">
-              <span className="muted">Plot stocks</span>
-              {tickers.map((ticker) => (
-                <button
-                  key={ticker}
-                  className={`ticker-chip ${plottedTickers.includes(ticker) ? 'active' : ''}`}
-                  onClick={() => setWeightSelected((current) => {
-                    const active = current.length ? current : tickers
-                    if (active.includes(ticker) && active.length === 1) return active
-                    return active.includes(ticker)
-                      ? active.filter((item) => item !== ticker)
-                      : [...active, ticker]
-                  })}
-                >
-                  {ticker}
-                </button>
-              ))}
+            <div className="chart-with-controls">
+              <LineChart
+                labels={labels}
+                series={weightSeries}
+                activeIndex={idx}
+                hoveredName={hoveredWeight}
+                onHover={setHoveredWeight}
+                yFormat={(v) => `${v.toFixed(0)}%`}
+              />
+              <div className="ticker-picker chart-controls" aria-label="Weight timeline stocks">
+                <span className="muted">Plot stocks</span>
+                {tickers.map((ticker) => (
+                  <button
+                    key={ticker}
+                    className={`ticker-chip ${plottedTickers.includes(ticker) ? 'active' : ''}`}
+                    onClick={() => setWeightSelected((current) => {
+                      const active = current.length ? current : tickers
+                      if (active.includes(ticker) && active.length === 1) return active
+                      return active.includes(ticker)
+                        ? active.filter((item) => item !== ticker)
+                        : [...active, ticker]
+                    })}
+                  >
+                    {ticker}
+                  </button>
+                ))}
+              </div>
             </div>
-            <LineChart
-              labels={labels}
-              series={weightSeries}
-              activeIndex={idx}
-              hoveredName={hoveredWeight}
-              onHover={setHoveredWeight}
-              yFormat={(v) => `${v.toFixed(0)}%`}
-            />
 
             {/* Horizontal scrubber through rebalance events. */}
             <div className="scrubber">
@@ -225,26 +228,30 @@ export default function Overview({ demoMode = false }) {
                 sentiment-driven targets, not market drift.
               </div>
             </div>
-            <div className="ticker-picker" role="group" aria-label="Select price series">
-              {tickers.map((ticker) => (
-                <button
-                  key={ticker}
-                  className={`ticker-chip ${selected.includes(ticker) ? 'active' : ''}`}
-                  onClick={() => setSelected((current) => current.includes(ticker)
-                    ? (current.length === 1 ? current : current.filter((t) => t !== ticker))
-                    : [...current, ticker])}
-                >
-                  {ticker}
-                </button>
-              ))}
-            </div>
           </div>
           {priceSeries.length > 0 && (
-            <LineChart
-              labels={priceDates.map((d) => d.slice(5))}
-              series={priceSeries}
-              height={150}
-            />
+            <div className="chart-with-controls">
+              <LineChart
+                labels={priceDates.map((d) => d.slice(5))}
+                series={priceSeries}
+                height={150}
+                hoveredName={hoveredPrice}
+                onHover={setHoveredPrice}
+              />
+              <div className="ticker-picker chart-controls" role="group" aria-label="Select price series">
+                {tickers.map((ticker) => (
+                  <button
+                    key={ticker}
+                    className={`ticker-chip ${selected.includes(ticker) ? 'active' : ''}`}
+                    onClick={() => setSelected((current) => current.includes(ticker)
+                      ? (current.length === 1 ? current : current.filter((t) => t !== ticker))
+                      : [...current, ticker])}
+                  >
+                    {ticker}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

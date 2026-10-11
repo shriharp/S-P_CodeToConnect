@@ -67,6 +67,12 @@ providers. Demo mode reads only deterministic replay signals and `demo-*`
 ledger events. Strategy Lab remains a read-only counterfactual path and does
 not write to either dashboard scope.
 
+`source_provider=unknown` means a caller used the live `/analyze` or `/ingest`
+API without identifying its upstream provider. It is not a background provider
+and does not mean that NLP returned an unknown event. These attributable live
+submissions remain visible in live mode, while Strategy Lab and test providers
+are excluded by scope.
+
 The weight-evolution history excludes ledger events whose normalized final
 weights equal their original weights. Skipped policy-gated signals remain
 auditable in the ledger, but are not rendered as weight-change causes.

@@ -1,12 +1,27 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { getLiveHealth } from '../api.js'
 
 export default function ContextRail({ demoMode, setDemoMode, overview, tab, setTab }) {
+  const [liveHealth, setLiveHealth] = useState(null)
   const total = overview?.total ?? 0
   const nullSentiment = overview?.sentiment?.null ?? 0
   const nullImpact = overview?.impact?.null ?? 0
   const qualityRate = total
     ? Math.round(((2 * total - nullSentiment - nullImpact) / (2 * total)) * 100)
     : null
+
+  useEffect(() => {
+    let active = true
+    const load = () => getLiveHealth().then((health) => {
+      if (active) setLiveHealth(health)
+    }).catch(() => {})
+    load()
+    const timer = setInterval(load, 15000)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [])
 
   return (
     <aside className="context-rail" aria-label="Context panel">
@@ -27,6 +42,24 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
           />
           <span className="toggle" aria-hidden="true" />
         </label>
+      </section>
+
+      <section className="rail-card">
+        <div className="rail-label">Ingestion runtime</div>
+        <div className={`rail-mode ${liveHealth?.scheduler_enabled ? 'pos' : 'muted'}`}>
+          {liveHealth?.scheduler_enabled ? 'Background scheduler running' : 'Manual polling'}
+        </div>
+        <p className="muted">
+          {liveHealth?.scheduler_enabled
+            ? 'The backend continues polling independently of this browser tab.'
+            : 'Enable INGESTION_SCHEDULER_ENABLED=true to poll in the backend.'}
+        </p>
+        {liveHealth?.providers && (
+          <p className="muted" style={{ marginBottom: 0 }}>
+            {liveHealth.providers.filter((provider) => provider.last_success_at).length}/{liveHealth.providers.length} providers have succeeded.
+            {liveHealth.queue ? ` Queue: ${liveHealth.queue.pending ?? 0} pending.` : ''}
+          </p>
+        )}
       </section>
 
       <section className="rail-card">
