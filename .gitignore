@@ -13,3 +13,6 @@ backend/recordings/
 backend/data/
 backend/models/
 
+# Local presentation, demo, and Q&A source-of-truth notes
+scrap.md
+scrap.txt

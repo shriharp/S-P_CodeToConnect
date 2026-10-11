@@ -1,84 +1,148 @@
 # KAIROS - Signal Over Noise
 
-AI/NLP financial risk intelligence and mock portfolio rebalancing for the
-S&P Global & CRISIL Code to Connect hackathon.
+KAIROS is an AI/NLP financial risk engine for the S&P Global and CRISIL Code
+to Connect 2026 hackathon.
 
-**Candidate Name:** Shrihar Pande
-**College Email ID:** shrihar.mitmpl2023@learner.manipal.edu
-**College / Campus:** MIT, Manipal
-**Demo Video Link:** tbd
-**Slide Deck Link (if hosted externally):** tbd
+It reads financial news and social posts, identifies the company involved,
+extracts a structured risk signal, and shows what a policy-controlled mock
+portfolio rebalancing decision would look like.
 
-## 1. Project Overview / Problem Statement & Approach
+**Candidate:** Shrihar Pande
+**College:** MIT, Manipal
+**Demo video:** [link](https://www.youtube.com/watch?v=GG1mUstdfSk)
+**Presentation:** located in the same repository [docs/KAIROS_S&P-Code-to-Connect.pdf](docs/KAIROS_S&P-Code-to-Connect.pdf)
+**Technical Architecture** [link](https://viewer.diagrams.net/?tags=%7B%7D&lightbox=1&highlight=0000ff&edit=_blank&layers=1&nav=1&title=kairos_clean.drawio.xml&dark=auto#R%3Cmxfile%3E%3Cdiagram%20id%3D%22kairos-architecture%22%20name%3D%22KAIROS%20Detailed%20Architecture%22%3E7Z1Zd9q6FoB%2FTR7T5YEpj5TQHNZJIAuSnvapS7YF6Na2fGQ5w%2F31R5ONDU4YIhDQkNXGFh40fNrae2tLuXB70csNAcn8DgcwvHCs4OXCvb5wHKfhdNgvnvIqU%2Bx2w5UpM4IClbZImKD%2FQ5VoqdQMBTCtXEgxDilKqok%2BjmPo00oaIAQ%2FVy%2Bb4rD61gTM4ErCxAfhauo%2FKKDzvGBNa%2FHFXxDN5vmrHUt9E4H8apWQzkGAn0tJbv%2FC7RGMqTyKXnow5NWXV4y879sb3xY5IzCmm9xAEWWlWrlJPSelr3mZKXxh332d0yhkCTY7fJ4jCicJ8PkVz6ypWRoI0SxmpyGc8qufIKGI1VtXJVPML5LPfgJhpp594bRCfrlXeWXr34zXwtcpjullKiDoOk7ysviGHc3477%2B7g%2FFowm6%2BZP8m7FWAF3HE3s5%2BDTFKYf4GVhFeflfxVrKckiYgXpsVu1WXlVJRZMIk8yKUpgjHgjSeI5bTFohEdYn%2F71naTYg9kese6y6CZ3Es%2BXUs9tN6rwwsTWY6TxY1zGofvpQaVCFwA3EEKXlll8xLlLYUks8LpK9ybtVTGupUddwcYqD606x48II4dqCgqwcwhDMYBwcmkLdjD4esNfiT3Zb4qHQlbmy7jtQJDlnGCynCKoAnWySLKYp4uwWAAt7QIevUvHpUQ8deKslfPreuQTqHNY9ksosSzGqqJ5oJhKxNxLFAiEAQXOI4fBW1RufpTi3O71lq8fb7Ld7pfLzFU%2BJv0tzpM4pCEMP1TU5wFgcwUFcA4qsmdJZatDhXL%2BFXpxSQ%2FIKGQACFYQmNaZP%2FiAsJ%2Fg3roMkz%2Bm3pTvFh3%2Fs4DEGSIk%2B81CqelQ8d9pfmGqEoO3X%2Fx0N%2FPOzecmi6D10uSEaP415%2FolO4PSs8ujEmERNISzLPrpN5t%2BiJo58Q%2FMTGZZLqFEoNt7XCqNN8l1H7qqUFUmuV0gLdEqdv0Sdwq8O1RPMKnVWEAgA7U78WPr8DvelG2Nxc928fODMjLj2cL5ZpXIZQiLnu%2FUAnKM0aTpwqJ3azwklTw%2BjFgKhRuU4Rkx6OWBPwWgV8OLaSzAsRK4Y1nhgXMIqYKYSBVuGyPTO2o0e2OOcBzYRi%2F%2FfDM6Jpwc0YBgGix8HNBPtIKNUpzogPDbPDhK8WdtwzYafPx6P%2B9U13bJoTprmheMbNc0iB1OCNgtLWo2U3zgOU1ymKQexrteE%2FpOYiIUqUvJujlGLeNCaJcZuNjxNDYBICVtkhTDexz%2FaITWE6rWBz1Wq7gBtdgTSb5eP4yT2gFBJu4rPasxqb6jwRYrcFwqLmpS%2BaNQLkN%2BTDmKoPs%2BiNplMmoTh9UxCGHvB%2F79nxs8bE6lgadGdCN8Hs8G4Ap84N0PGhXyvIvE6T%2B33fcwOAKbjY2Q3AzLa%2F%2B2yEtHqju%2FvRpM81q8fhw%2BCuX%2BdfavdqXEwTn3WVLBTeUBgDlgFOuMcxCOAUZCHdCZurq1Vu7HanCo7rLhnnOnyGYrBeRifH6fhcSNOpU89O0PJazUO6kL52GUzDa0HT8KE7GAqyuNd8MLzpTx4Go6FpUVeCleuHCSt5fvxvBjOoU%2FC5VmNV8i0DXOW3rcP%2B84XHdxnggmrTg2yB5QZAsaFoJjLJ871oOrMMccFkpdDHIls%2Bjjw2eIrDVz%2FUStAGQ%2BcevE55pzgHgu6V17jU15UKxiyxhFbdyWa8T%2BJSfkXuSOBNQWGk1Z%2BwPUm2q0HpVzL1HEgag2fVMDVjhRFyrpk4TOTYRWTD8ENP1SM7ApSJTMMYObYGb0OCkhqKjlYlC5qwEzTqeOs4nnvQWb23VbLJ4EbO9t0P7vu37AvTOI%2BzmPs9RCQDBP4872bCfC51Pp2ekFUFzV2aoXbbe9DQaM2szoJx00KxgHQ9XvYXdkE%2Fpoi%2BCimU4jCjIhjFLEvdEIGUiz4uEWMQ5Yc%2BSOcUzPYuE9v7nxqkzpkw5HCGJlCEuMTcJ4ZippclbEgDx4DSLXxBvhBKIjQGJzxTYtonkqGHJknSoqSltGbO5yRRcoU4ejpGjP569YiI7SKZ8PhKmvwQpCmaoopRa4AjLVpaSmumhE6Sowbn6BoyfiIUo5SKSAUUsTxR0YKsKX3TQPW5XRv78HJGCo0feCnlgrSCuwGcXC1z0bR5Jjg1xQiXBw6L0EtBklmA7l8DEEu0WeZRoMRkHqBDMJOjSxOjJlDqaFG4W0eA0vpJnvUotThKd5j7QdlBVyjdHgh5Oxn3i%2FaYwSrV7CmzBOYxTNVpkCUh8gHNtXCb21hWAokvRmqTeDXaGnTxJx5IfTLeCWgHTdiu47CY%2Fj6Ud%2BK%2BP54MJg%2F9oYgglVHH30e3j3fmo44nc9aWXBCqkHvWxlmkVxZerfc%2BtPcwP4TiWeCt8lpAXAZ2DhJ%2B6L%2BGiPFIXF75Es1bL%2BfXKyZpRhkVcQSKQ4lgZ49jcAHsetRYqWHKR7gvvPBqkCPg%2BZdwtYtEwwZCaRGGn5EUk7QyL8kPISFYbwB8jQdsncTUYSmgPxHBVGiAx8Dad6nvyUlLGZl9mSbQZ5YoVwdVRs1y5nY0uDZC%2BAdyxgo9g%2BQIMPsKp5go0QWmNA%2B0CBhocsWinLoCqWZ7dXuZ1tIh1GBd2EUda2cQ2zh%2BI55RVsJxhDX2cIJEblAs1rvSeWkJ5R70ua2Nj5alQcSBBJ2S8SE%2BdXw2xOeAxse37uRBrBKTa8Wsr6PH4XV3%2FNM0tuP%2B5EGOyxHrXGLJbh50GaEgUNdaExGsGcqo8UK75Uoi939rXoyy3lKxrSv9pso8qxm9C%2BBNS9SC2PWs5XMSokCG3X5ZOi%2FktmLtUGHfB5gW9XFSt8DgFKHha%2Fc9DAhvqLxcR7FGpVYeBTDCb30HwnOYJ4VxkGAkZOs54KX6fqlUZuHiZOSGZz1G7App27xzQYIJneIQ4bqsfwvfAVi8P8pCZhdfis1ANBJrN7ef%2BGhrQHZ6UmFz65fzHUw3HI%2BGDytxc4YDhWcofnkL3oTgIPOVBjiGcqJajvHfWSuyX16GwuDgWmGxaZXO8Lm5OF%2FmenokE8NbrD0tdpYCScJzLgtmFrO7fIeo2UzMMR7XdLAOHfEJiQ0fzoAfvgcZL82bNmIec%2FBNumVqL7pfHjGNTblRwsbeGYfkFnhvZXfkpazQwEOhCDo9ea0ylmL9DGjMBygmK15eTcOktFspvaSvhGVF6OlG4w3sq48jwwNPawTYUSh2rlVDl8sUu%2Fed0ntS7Po%2F%2Br1Hue7Uuhtd87CCXbT3xmo72%2B7SupelmfqOlt0Lhbmy3M6l5j%2FQPhvr17Oslw63g%2B%2FGl5j0MkKkIy5ZrAucQuovPGIidIk3QTyFBOrWd2pmphpVjJwqRjr0nXzvCfMc6div5a%2FB5GE0HvTE2qVx%2F%2F62a9xjX97ow8ckydKjwWk5gEiPjxXGR0DTBhsfrKdp3O9eX46Gtz%2B5ltDrD7vjwcg0Tit6sM8qkUIyZVZ9BvR6UtcTtDKxowMh4Z9YJugYdmepVV%2BMbdIqPVCPk%2F54N8XFqdlDZWXAsZdcNA1XTwPzBS4rfnK%2FRkdVkTdZFHbFXZXGzndYZj0Bhvc4RcLHle%2B0vLz%2FsocpxdFW9k3ehCuV%2F5iK3QF2qPbOaq2vdKpqnbc0VLnHN3iu27ehrtLN2JJv1vWKXP4HcsFXFMmsQJ5Tyqqgy1vC%2BRZixtscp%2FwZTbvt7tuetN93QXSaHycH%2Fio27uPTKxVpXCeg5S4VsvPW7PjHn5HLV0zoHM%2F4gsn%2BIrUkra0qWnVScQUj%2BWHfwDjo8m3NWbJcSOfLRC6F1QPhC6I%2FSsc%2F%2BTu%2FuO1WnnD9onIhTl7zk5hV4Y%2FyibyxmZ8ubhNn%2BX3lrsHPQy61FrvY1PUSWX1sCJpBVc3l%2FVcqfaQOHwJDQLmZWG6hD8Kw2EBoaxwWtx45EKotFRKb0rAA4Gel%2Fc%2BYBv7%2B3WAo5%2FyTBj00lDbUMQHDv7uRUMr1kYNQHSeaG4JgYJAo9hAxMkLkL996fKCrRt4xYnAy8qDYBsQMBs6uGDifGOjFwDWJgbsrBu4nBnoxaJjEoLErBo1PDPRi0DSJQXNXDJqfGOjFoGUQAzQ7bwxOx1JYLLY2AUK4sy8px%2FcTBD0gLBZDGxIIv4plEluzsGD4D6DB6RwCh6XlLIZkw%2B5MLHD%2BA5DoNP4QJIoln9viUNrW5oA8tAH%2FOYsBY%2BN9AcrEFM1lhBW1Zc6OuJwELFVrw9oQlr1bGzvBUuqiJVzmb218lO929CGaxK2ssuVmFeqChZBTT77nCRfFJHtzKTzDbjfLZK5cbxez9PU3sAOZhQXYRVk2nYaTQfW7oF5aYXDkI6V1sYNktPcuGUWA2GoZRHKpFNuMp2p5woUjlunw5QkHkpmVKKFtSarc%2FMmSHqWr1D1NDKKlSL1tcSjdeuwwnIrPrtLDjJhkxZKTre2x4s4%2FQKWy9cOwq0pljpXywpJtaSnf%2B8nLwXhZbFJnJrIwXzmyfWBhfucnLAeD5QjcQaW%2FF72bhCk94MjJOV230P%2ByKMlrExA%2FTym9x6ggYqcE84D%2BhfFNQDK%2FE3%2B%2Bx%2B3%2FBw%3D%3D%3C%2Fdiagram%3E%3C%2Fmxfile%3E)
 
-Financial risk teams need to turn unstructured text — news headlines and social
-posts — into structured, actionable risk signals, then demonstrate a practical
-use of that intelligence. This project builds KAIROS, a unified AI/NLP Risk Engine that
-does exactly that, and applies it through a tactical mock-index rebalancer
-(Module A).
+## 1. The problem and our approach
 
-The approach is a modular pipeline. Live text from free, keyless sources (GDELT
-for news, StockTwits for social) is normalized, then run through a hybrid NLP
-layer that resolves the affected company (names and cashtags), scores
-company-specific sentiment, classifies the event type, and computes a financial
-impact score with a deterministic rubric that abstains when evidence is thin.
-Each result is validated against a strict signal contract: scores have defined
-bounds, unknown is never conflated with neutral, and every claim must be backed
-by an exact excerpt from the source text.
+Financial analysts do not have a shortage of headlines. The harder questions
+are:
 
-Those signals then drive Module A: a transparent 10-stock mock index whose
-weights move with sentiment, subject to position caps, freshness and
-duplicate-event gates, and always renormalized to 100%. Every rebalance is
-written to an auditable decision ledger recording the original and final weight,
-the decision, and the reason — so any change on the dashboard is traceable back
-to the headline that caused it. The system is CPU-first and runs entirely on
-free data; a deterministic replay path keeps demos reproducible without a network.
+- Which company does a piece of text actually refer to?
+- Is the tone favourable or unfavourable?
+- What event is being described?
+- How serious could it be?
+- Is there enough evidence to do anything with it?
+- If a portfolio change is allowed, what changed and why?
 
-## 2. Architecture & Tech Stack
+KAIROS is built around that chain of questions. It takes text from live
+sources, resolves the affected company, interprets sentiment and event type,
+keeps the supporting excerpt, and produces a structured signal.
 
-[Architecture Diagram](docs/architecture.drawio) · [Container architecture facts](.github/modernize/assessment/engines/facts/architecture-diagram.md)
+The signal then feeds Module A, a 10-stock mock index. The rebalancer moves
+weights up or down based on sentiment, while applying position caps, freshness
+checks, duplicate checks, and evidence-quality gates. The final weights always
+sum to 100 percent. Every decision is recorded with the old weight, new
+weight, outcome, and reason.
 
+This is a mock allocation for demonstration. KAIROS does not place trades or
+provide investment advice.
 
-**Data flow:** live sources → ingestion adapters → NLP pipeline (entity
-resolution, sentiment, event, impact rubric) → signal contract validation →
-Module A rebalancer → decision ledger → FastAPI → React dashboard.
+## 2. Core AI/NLP risk engine
 
-**Backend:** FastAPI + Pydantic (validation), SQLite (signal store + decision
-ledger), yfinance (market data). NLP is a hybrid of a lightweight lexicon layer
-(default) and an opt-in DistilRoBERTa financial sentiment model (Apache-2.0,
-CPU-viable, ~27 ms/item).
+The live pipeline runs in the backend:
 
-**Frontend:** React (Vite), five tabs — Overview (weight timeline + causal
-storyboard), Signals (hot-ranked live feed), Portfolio (ledger, holdings),
-Strategy Lab (article analyzer + read-only what-if simulator), System (status,
-provenance).
+1. Provider adapters fetch news, social posts, filing metadata, and prices.
+2. Incoming items are normalized and deduplicated.
+3. A bounded queue controls analysis and retry work.
+4. Entity resolution links the text to a company and ticker.
+5. NLP interprets sentiment and event type.
+6. The pipeline keeps an exact evidence excerpt from the source text.
+7. A deterministic rubric calculates impact when the evidence supports it.
+8. Pydantic validation checks the signal contract.
+9. Module A decides whether the signal is allowed to affect the mock index.
 
-**Key design choices:** deterministic impact scoring (a model never sets the
-final impact number), explicit provenance labels (live / replay / synthetic) on
-every signal, and a modular layout so the NLP layer, persistence, and portfolio
-policy can each be extended independently.
+Sentiment and impact are kept separate. Sentiment describes direction. Impact
+describes possible magnitude. A missing value stays unknown; it is not quietly
+changed to zero or neutral. If the evidence is too weak, the engine can
+abstain.
 
-## 3. Dataset Used
+The default setup is CPU-first. It uses a lightweight lexicon and rule-based
+path without requiring a large model download. An optional model-backed path
+can be installed separately.
 
-- **News:** GDELT Project DOC 2.0 API (free, no key) — live global news.
-- **Social media:** StockTwits stream API (free, no key) — live posts with
-  symbol context.
-- **Market prices:** yfinance (free, no key) — live quotes and history.
-- **Entity registry:** a curated, hand-authored alias table for the 10 mock-index
-  companies (publicly known large caps). Committed in the repo.
+## 3. Downstream application: Module A
 
-All data is either live from the free sources above or synthetic fixtures clearly
-labeled as such in the UI. No proprietary data is used. Assumptions: social posts
-are short and often non-directional (the engine abstains rather than guessing);
-market-cap-based seed weights are used for the initial mock allocation.
+Module A demonstrates tactical index rebalancing:
 
-## 4. Quickstart & Installation
+- favourable sentiment can increase a holding's mock weight;
+- unfavourable sentiment can decrease it;
+- weights cannot become negative;
+- position caps are enforced;
+- stale, duplicate, or low-quality signals can be skipped;
+- the final allocation is normalized to 100 percent;
+- the decision ledger keeps the reasoning visible.
+
+The Overview page shows the weight history. Portfolio shows the current
+allocation, sector exposure, and ledger. Signal Feed lets the user trace a
+decision back to its source text.
+
+Strategy Lab is a separate, read-only what-if flow. It uses the same reasoning
+path for a new scenario but does not write to the live signal feed or ledger.
+
+## 4. Data sources and datasets
+
+### Live sources
+
+All of the following are free and do not need an API key:
+
+| Source | Used for |
+| --- | --- |
+| [GDELT DOC 2.0](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) | Global news |
+| Company and public RSS feeds | Supplemental news |
+| StockTwits | Social posts with ticker context |
+| Reddit RSS | Public discussion |
+| SEC EDGAR metadata | Filing-related information |
+| [yfinance](https://github.com/ranaroussi/yfinance) | Live prices and history |
+
+Public sources can be rate-limited or temporarily unavailable. The
+Observability page shows fetches, analyzed items, skipped items, retries, and
+errors. A failed provider is not replaced with fabricated data.
+
+### Replay and additional datasets
+
+The repository includes a small evidence-rich replay corpus and market seed
+data. Replay is useful for a repeatable demo and runs through the same
+inference and rebalancing path as live mode. The UI labels replay clearly.
+
+The problem statement also lists financial-news sentiment datasets, historical
+stock tweets, Alpha Vantage, and transaction datasets as possible sources for
+training, back-testing, or a future Module B implementation. They are not
+pretended to be live inputs in this submission.
+
+## 5. Architecture and technology
+
+[Architecture diagram](docs/architecture.drawio)
+[Architecture facts](.github/modernize/assessment/engines/facts/architecture-diagram.md)
+
+The runtime is a modular monolith with clear boundaries:
+
+```text
+Live sources
+    -> provider adapters and scheduler
+    -> normalization, deduplication, and queue
+    -> entity resolution and NLP
+    -> signal contract and deterministic impact
+    -> Module A policy
+    -> SQLite signal store and decision ledger
+    -> FastAPI REST/SSE
+    -> React dashboard
+```
+
+**Backend:** FastAPI, Pydantic, SQLite, and yfinance.
+**Frontend:** React and Vite, served by Nginx in the container runtime.
+**Deployment:** Docker Compose with separate frontend and backend containers.
+
+The scheduler, queue, NLP pipeline, storage, API, and portfolio policy are
+separate application areas. That keeps the current demo simple while leaving
+clear places to introduce workers, a shared queue, or a managed database later.
+
+## 6. Run the application
 
 ### Recommended: Docker Compose
 
-This is the simplest way to run the complete KAIROS application on a judge's
-machine. It requires Docker Desktop or Docker Engine with Compose; Python,
-Node.js, npm, and model downloads are not required on the host.
+This is the easiest way to run the complete application. The host only needs
+Docker Desktop or Docker Engine with Compose.
 
 ```bash
 git clone <your-repo-url>
@@ -86,68 +150,64 @@ cd <repo-folder>
 docker compose up --build
 ```
 
-Open **http://localhost:5173**. The Compose setup starts:
+Open <http://localhost:5173>.
 
-- `frontend`: a production React build served by Nginx.
-- `backend`: the FastAPI API and background ingestion scheduler.
-- `kairos-data`: a named volume for SQLite databases and seeded replay/market
-  files.
-- `kairos-recordings`: a named volume for optional recordings.
+The Compose setup starts:
 
-The containerized backend enables the scheduler by default with a 90-second
-combined provider cycle. It continues polling after the browser is closed.
-Provider health, queue activity, retries, and partial failures are visible in
-the Observability tab. The first live cycle may take time because providers are
-rate-limited and some sources can be temporarily unavailable.
+- a production React build served by Nginx;
+- the FastAPI backend;
+- the background ingestion scheduler;
+- named volumes for SQLite state, replay files, and recordings.
 
-To stop the application:
+The scheduler is enabled by default in the containers and uses a 90-second
+combined cycle. It continues running after the browser is closed.
+
+Stop the application:
 
 ```bash
 docker compose down
 ```
 
-To stop it and remove persisted demo/runtime data:
+Remove the persisted runtime data as well:
 
 ```bash
 docker compose down -v
 ```
 
-To run without live network polling while preserving the same container setup:
+Run the containers without background polling:
 
 ```bash
 INGESTION_SCHEDULER_ENABLED=false docker compose up --build
 ```
 
-The frontend is exposed on port `5173`; the backend remains internal to the
-Compose network. The Nginx container proxies `/api` and the live SSE stream to
-FastAPI, so judges only need to open one URL.
+Only port 5173 is exposed to the host. Nginx proxies API and SSE requests to
+FastAPI inside the Compose network.
 
-Runtime: Python 3.11+ and Node 18+ on macOS/Linux/Windows.
+### Local development
+
+Local development needs Python 3.11 or newer and Node.js 18 or newer.
+
+Backend:
 
 ```bash
-git clone <your-repo-url>
-cd <repo-folder>
-
-# Backend (base install)
 cd backend
 python -m venv .venv
 .venv/bin/pip install -r ../requirements.txt
-.venv/bin/python -m uvicorn app.api.main:app --port 8000
+.venv/bin/python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
+```
 
-# Frontend (in a second terminal)
+Frontend, in a second terminal:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — the Vite dev server proxies `/api` to the backend.
+Open <http://localhost:5173>. The Vite development server proxies API calls to
+the backend.
 
-### Optional background ingestion scheduler
-
-The default backend mode is manual: the Signals tab can trigger an immediate
-live poll, and while that tab is open it periodically refreshes live sources.
-To keep polling independently of the browser, stop the backend and restart it
-with the scheduler enabled:
+To run the backend scheduler locally:
 
 ```bash
 cd backend
@@ -156,64 +216,47 @@ INGESTION_INTERVAL_SECONDS=90 \
 .venv/bin/python -m uvicorn app.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-`INGESTION_INTERVAL_SECONDS` controls the combined ingestion cycle. The System
-tab and the right-side ingestion runtime panel show whether the scheduler is
-running. This scheduler stores provider health, deduplicates source items, and
-continues polling after the browser is closed. Set
-`INGESTION_SCHEDULER_ENABLED=false` or omit it to return to manual mode.
+Without that setting, the Signals page can trigger a manual live poll.
 
-Run tests: `cd backend && .venv/bin/python -m pytest`
+## 7. Model options and tests
 
-### Data: what's included vs what you regenerate
+The base install works without model downloads. Event classification falls
+back to the keyword table when the optional model is unavailable.
 
-The repo is set up so a fresh clone runs out of the box, offline:
-
-- **Included (committed):** market-price CSVs (`data/market_prices.csv`),
-  ticker/sector metadata, and the 40-item demo replay dataset
-  (`data/demo_news.jsonl`). The demo replay and market panels work with no
-  network and no model download.
-- **Not included (regenerate):** the fine-tuned event-classifier checkpoint
-  (~270MB) and its training data are gitignored to keep the repo small. They're
-  reproducible from the committed scripts.
-
-### Optional: model backends (recommended for the full experience)
-
-The base install runs entirely on the keyword/lexicon layer — no ML downloads
-needed, and event classification degrades gracefully to keywords. To enable the
-fine-tuned event classifier (default when available) and the model sentiment
-backend:
+To install the optional model dependencies:
 
 ```bash
 cd backend
 .venv/bin/pip install -r ../requirements.txt -r ../requirements-model.txt
-# or: .venv/bin/pip install -e ".[model]"
-
-# Generate training data + fine-tune the event classifier (CPU, a few minutes)
 .venv/bin/python -m scripts.generate_event_training_data
 .venv/bin/python -m scripts.finetune_event_classifier
 ```
 
-Without these steps the app still runs — event classification falls back to the
-keyword table automatically (see `docs/model-evaluation.md` for measured
-accuracy of each backend).
+Run backend tests:
 
-## 5. Key Results & Domain Impact
+```bash
+cd backend
+.venv/bin/python -m pytest
+```
 
-The engine converts unstructured news and social text into structured,
-company-specific risk signals with sentiment, event category, an explainable
-impact score, and exact source evidence — validated against a strict contract
-that refuses to fabricate scores or evidence. Module A turns those signals into
-a transparent mock-index proposal where every weight change is capped, gated,
-and traceable in an auditable ledger back to the triggering headline.
+See [docs/model-evaluation.md](docs/model-evaluation.md) for the measured
+comparison between the available NLP paths.
 
-This matters because risk and portfolio decisions are only trustworthy when
-they are explainable and auditable. The system treats "unknown" as a real state
-(not neutral), abstains when evidence is insufficient, and labels data
-provenance throughout — the same discipline that separates a credible risk tool
-from a black-box sentiment score. It runs on free, CPU-first infrastructure, so
-it is reproducible without paid services or a GPU.
+## 8. Results and domain impact
 
----
+KAIROS demonstrates the complete path from unstructured text to a controlled
+portfolio decision:
 
-Mock allocations are for demonstration only — not investment advice or a
-prediction of future performance.
+- multiple live source families are connected;
+- signals are company-specific and evidence-backed;
+- sentiment, event type, impact, freshness, and provenance are visible;
+- missing information is not turned into false certainty;
+- Module A produces capped, normalized mock allocations;
+- the decision ledger makes each change reviewable;
+- live, replay, and synthetic scenarios stay separate;
+- Docker Compose makes the application reproducible on a judge's machine.
+
+The current deployment uses SQLite and a modular monolith because that is a
+good fit for a single-machine hackathon demo. A production deployment would
+measure queue depth, provider latency, analysis throughput, and storage load
+before separating workers or moving to shared infrastructure.
