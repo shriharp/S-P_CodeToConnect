@@ -8,6 +8,7 @@ from app.core.signal_contract import RiskSignal, SourceType
 from app.ingestion.adapters import normalize_item
 from app.ingestion.scheduler import IngestionScheduler
 from app.ingestion.state import IngestionState
+from app.ingestion.queue import RawItemQueue
 from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
@@ -22,11 +23,13 @@ RECORDINGS_DIR = Path(__file__).resolve().parents[2] / "recordings"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "signals.db"
 LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "ledger.db"
 INGESTION_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "ingestion.db"
+RAW_QUEUE_PATH = Path(__file__).resolve().parents[2] / "data" / "raw_items.db"
 
 _store: SignalStore | None = None
 _ledger: RebalanceStore | None = None
 _ingestion_state: IngestionState | None = None
 _scheduler: IngestionScheduler | None = None
+_raw_queue: RawItemQueue | None = None
 
 
 def get_store() -> SignalStore:
@@ -54,6 +57,13 @@ def get_ingestion_state() -> IngestionState:
     return _ingestion_state
 
 
+def get_raw_queue() -> RawItemQueue:
+    global _raw_queue
+    if _raw_queue is None:
+        _raw_queue = RawItemQueue(RAW_QUEUE_PATH)
+    return _raw_queue
+
+
 def _run_scheduled_poll() -> None:
     # Scheduler persistence is deliberately routed through the same path as a
     # manual poll, so both modes share deduplication and ledger semantics.
@@ -65,7 +75,8 @@ def _run_scheduled_poll() -> None:
                    seen_item=lambda item: state.seen(item.provider, item.external_id),
                    record_item=lambda item, status: state.record_item(
                        item.provider, item.external_id, item.published_at, status
-                   ))
+                   ),
+                   raw_queue=get_raw_queue())
     for sig in out["signals"]:
         get_store().save(sig)
         state.record_item(sig.source_provider, sig.source_item_id, sig.published_at, "analyzed")
@@ -83,7 +94,7 @@ def _start_scheduler() -> None:
 
 @app.on_event("shutdown")
 def _close_stores() -> None:
-    global _store, _ledger, _ingestion_state, _scheduler
+    global _store, _ledger, _ingestion_state, _scheduler, _raw_queue
     if _scheduler is not None:
         _scheduler.stop()
     if _store is not None:
@@ -95,6 +106,9 @@ def _close_stores() -> None:
     if _ingestion_state is not None:
         _ingestion_state.close()
         _ingestion_state = None
+    if _raw_queue is not None:
+        _raw_queue.close()
+        _raw_queue = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -111,7 +125,11 @@ def health() -> dict:
 
 @app.get("/live/health")
 def live_health(state: IngestionState = Depends(get_ingestion_state)) -> dict:
-    return {"scheduler_enabled": bool(_scheduler and _scheduler.enabled), "providers": state.health()}
+    return {
+        "scheduler_enabled": bool(_scheduler and _scheduler.enabled),
+        "providers": state.health(),
+        "queue": get_raw_queue().counts(),
+    }
 
 
 @app.post("/analyze", response_model=RiskSignal)
@@ -515,6 +533,7 @@ def live_poll(
         record_item=lambda item, status: state.record_item(
             item.provider, item.external_id, item.published_at, status
         ),
+        raw_queue=get_raw_queue(),
     )
     event = out["decision_event"]
     for sig in out["signals"]:

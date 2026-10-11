@@ -15,6 +15,10 @@ Convert unstructured financial news and social text into company-specific, expla
 8. Persist the resulting signal.
 9. Apply Module A's portfolio policy.
 
+Live source items are first written to a durable SQLite raw-item queue. NLP
+workers claim bounded batches and mark each item complete or retryable; fetch
+and analysis counts are reported separately.
+
 ## Stack
 - React frontend.
 - FastAPI backend.

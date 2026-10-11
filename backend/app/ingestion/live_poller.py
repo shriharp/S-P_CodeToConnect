@@ -37,6 +37,8 @@ def poll_live(
     seen_source=None,
     seen_item=None,
     record_item=None,
+    raw_queue=None,
+    queue_batch_size: int = 100,
 ) -> dict:
     """One live ingestion cycle across all three free sources.
 
@@ -68,12 +70,15 @@ def poll_live(
                 continue
             if record_item is not None:
                 record_item(item, "fetched")
-            out.extend(
-                analyze_item(item, provenance=Provenance.live.value,
-                             sentiment_backend=sentiment_backend,
-                             event_backend=event_backend,
-                             ingested_at=now)
-            )
+            if raw_queue is not None:
+                raw_queue.enqueue(item)
+            else:
+                out.extend(
+                    analyze_item(item, provenance=Provenance.live.value,
+                                 sentiment_backend=sentiment_backend,
+                                 event_backend=event_backend,
+                                 ingested_at=now)
+                )
         return out
 
     # Live news (GDELT)
@@ -113,6 +118,20 @@ def poll_live(
     except Exception as exc:
         source_errors["social:reddit"] = f"{type(exc).__name__}: {exc}"
 
+    if raw_queue is not None:
+        for rowid, item in raw_queue.claim(queue_batch_size):
+            try:
+                signals.extend(
+                    analyze_item(item, provenance=Provenance.live.value,
+                                 sentiment_backend=sentiment_backend,
+                                 event_backend=event_backend,
+                                 ingested_at=now)
+                )
+                raw_queue.complete(rowid)
+            except Exception as exc:
+                raw_queue.fail(rowid, f"{type(exc).__name__}: {exc}")
+                source_errors[f"queue:{item.provider}"] = str(exc)
+
     # Feed signals into the rebalancer (fresh signals only, at event time `now`).
     result: RebalanceResult = rebalance(portfolio, signals, now)
 
@@ -137,6 +156,7 @@ def poll_live(
                 "reddit": sum(1 for s in signals if s.source_provider == "reddit:r/stocks"),
             },
             "quotes": len(quotes),
+            "queue": raw_queue.counts() if raw_queue is not None else None,
         },
         "polled_at": now.isoformat(),
     }

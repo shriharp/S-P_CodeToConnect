@@ -55,6 +55,14 @@ deferred**, with files touched and tests run recorded on completion.
       `backend/app/ingestion/retry.py`, `backend/app/ingestion/scheduler.py`,
       `backend/app/api/main.py`, `frontend/src/views/System.jsx`.
 
+- [x] **P0.8 Durable raw-item analysis queue.** DONE 2026-10-11.
+      Live news/social items are persisted in `data/raw_items.db` before NLP
+      analysis. Bounded claims, explicit processing/completed/pending retry
+      states, attempt tracking, and queue counts are exposed through
+      `/live/health`. Existing signal and ledger behavior remains compatible.
+      Files: `backend/app/ingestion/queue.py`, `live_poller.py`,
+      `app/api/main.py`. Tests: `tests/test_ingestion_queue.py`.
+
 ## Approved Scope — P1 (high-value dashboard)
 
 - [x] **P1.1 Sector Exposure Heatmap.** DONE 2026-10-10. Aggregates the 10
