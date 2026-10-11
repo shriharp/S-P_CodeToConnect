@@ -245,10 +245,26 @@ def list_signals(
     ticker: str | None = None,
     since: datetime | None = None,
     limit: int = 100,
+    dashboard: str = "all",
     store: SignalStore = Depends(get_store),
 ) -> list[RiskSignal]:
-    """Query persisted signals (newest first)."""
-    return store.list(ticker=ticker, since=since, limit=min(limit, 500))
+    """Query persisted signals (newest first).
+
+    Dashboard views use an explicit scope so strategy-lab experiments, test
+    fixtures, and recorded demo data do not leak into live mode.
+    """
+    signals = store.list(ticker=ticker, since=since, limit=500)
+    if dashboard == "demo":
+        signals = [s for s in signals if s.provenance.value == "replay"]
+    elif dashboard == "live":
+        signals = [
+            s for s in signals
+            if s.provenance.value == "live"
+            and s.source_provider not in {"strategy-lab", "test", "unknown"}
+        ]
+    elif dashboard != "all":
+        raise HTTPException(status_code=422, detail="invalid dashboard scope")
+    return signals[: min(limit, 500)]
 
 
 @app.get("/signals/count")
@@ -257,13 +273,13 @@ def signals_count(store: SignalStore = Depends(get_store)) -> dict:
 
 
 @app.get("/signals/overview")
-def signals_overview(store: SignalStore = Depends(get_store)) -> dict:
+def signals_overview(dashboard: str = "all", store: SignalStore = Depends(get_store)) -> dict:
     """Aggregate distributions over persisted signals (Market Risk Overview).
 
     Descriptive counts only, computed from real stored signals — no fabricated
     metrics. Nulls are counted, never imputed.
     """
-    signals = store.list(limit=500)
+    signals = list_signals(dashboard=dashboard, store=store)
     n = len(signals)
     event_counts: dict[str, int] = {}
     provenance_counts: dict[str, int] = {}
@@ -426,21 +442,47 @@ def simulate_text(req: SimulateTextRequest) -> dict:
 
 @app.get("/ledger", response_model=list[dict])
 def list_ledger(
-    limit: int = 100, ledger: RebalanceStore = Depends(get_ledger)
+    limit: int = 100, dashboard: str = "all",
+    ledger: RebalanceStore = Depends(get_ledger)
 ) -> list[dict]:
     """Rebalance decision ledger, newest first (audit view)."""
     from dataclasses import asdict
 
+    events = ledger.list_events(limit=500)
+    if dashboard == "demo":
+        events = [e for e in events if e.event_id.startswith("demo-")]
+    elif dashboard == "live":
+        events = [
+            e for e in events
+            if e.event_id.startswith(("live-", "scheduled-"))
+        ]
+    elif dashboard != "all":
+        raise HTTPException(status_code=422, detail="invalid dashboard scope")
     return [
         {**asdict(e), "timestamp": e.timestamp.isoformat()}
-        for e in ledger.list_events(limit=min(limit, 500))
+        for e in events[: min(limit, 500)]
     ]
 
 
 @app.get("/portfolio/weight-history")
-def weight_history(ledger: RebalanceStore = Depends(get_ledger)) -> list[dict]:
+def weight_history(
+    dashboard: str = "all", ledger: RebalanceStore = Depends(get_ledger)
+) -> list[dict]:
     """Chronological per-ticker weight series for the evolution timeline."""
-    return ledger.weight_history()
+    events = list_ledger(dashboard=dashboard, limit=500, ledger=ledger)
+    return [
+        {
+            "event_id": event["event_id"],
+            "timestamp": event["timestamp"],
+            "weights": event["final_weights"],
+        }
+        for event in reversed(events)
+        if any(
+            abs(event["final_weights"].get(ticker, 0) - event["original_weights"].get(ticker, 0))
+            > 1e-9
+            for ticker in set(event["final_weights"]) | set(event["original_weights"])
+        )
+    ]
 
 
 @app.get("/portfolio/performance")

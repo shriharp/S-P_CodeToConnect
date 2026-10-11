@@ -67,3 +67,30 @@ def test_demo_replay_persists_to_ledger_and_signals():
     # Ledger and signal store are populated by the replay (real SQLite stores).
     assert len(client.get("/ledger").json()) >= 10
     assert client.get("/signals/count").json()["count"] >= 10
+
+
+def test_dashboard_scopes_keep_demo_rows_out_of_live_view():
+    replay = client.post("/demo/replay")
+    assert replay.status_code == 200
+    demo_events = client.get("/ledger", params={"dashboard": "demo"}).json()
+    live_events = client.get("/ledger", params={"dashboard": "live"}).json()
+    assert demo_events
+    assert all(event["event_id"].startswith("demo-") for event in demo_events)
+    assert all(
+        event["event_id"].startswith(("live-", "scheduled-"))
+        for event in live_events
+    )
+
+    demo_signals = client.get("/signals", params={"dashboard": "demo"}).json()
+    live_signals = client.get("/signals", params={"dashboard": "live"}).json()
+    assert demo_signals
+    assert all(signal["provenance"] == "replay" for signal in demo_signals)
+    assert all(signal["provenance"] == "live" for signal in live_signals)
+    assert all(signal["source_provider"] not in {"strategy-lab", "test", "unknown"} for signal in live_signals)
+
+
+def test_weight_history_excludes_no_change_events():
+    response = client.get("/portfolio/weight-history", params={"dashboard": "demo"})
+    assert response.status_code == 200
+    for row in response.json():
+        assert row["weights"]

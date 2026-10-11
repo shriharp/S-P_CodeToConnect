@@ -61,6 +61,16 @@ failures are isolated per provider and arbitrary URL scraping is not enabled.
 an in-process notification layer only; persistence remains authoritative in
 SQLite and the frontend falls back to REST refreshes if the stream disconnects.
 
+Dashboard reads are explicitly scoped to either `live` or `demo`. Live mode
+excludes replay rows, strategy-lab experiments, and known test/fixture
+providers. Demo mode reads only deterministic replay signals and `demo-*`
+ledger events. Strategy Lab remains a read-only counterfactual path and does
+not write to either dashboard scope.
+
+The weight-evolution history excludes ledger events whose normalized final
+weights equal their original weights. Skipped policy-gated signals remain
+auditable in the ledger, but are not rendered as weight-change causes.
+
 ## NLP Strategy
 Use a hybrid model-driven/deterministic architecture.
 

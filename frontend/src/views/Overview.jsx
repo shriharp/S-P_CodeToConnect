@@ -6,24 +6,27 @@ import { getWeightHistory, getPrices, getLedger, getSignals } from '../api.js'
 // and a horizontal scrubber to step through rebalance events. Dragging the
 // scrubber moves through time; the panel below shows ONLY the active step's
 // justification (which signal moved which weight and why).
-export default function Overview() {
+export default function Overview({ demoMode = false }) {
   const [history, setHistory] = useState([])
   const [prices, setPrices] = useState({})
   const [steps, setSteps] = useState([]) // ledger events + causes, oldest first
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(['AAPL'])
+  const [weightSelected, setWeightSelected] = useState([])
+  const [hoveredWeight, setHoveredWeight] = useState(null)
   const [activeIdx, setActiveIdx] = useState(0)
 
   const load = async () => {
     try {
       const [h, p, led, sigs] = await Promise.all([
-        getWeightHistory(),
+        getWeightHistory(demoMode ? 'demo' : 'live'),
         getPrices(selected.join(',')),
-        getLedger(500),
-        getSignals({ limit: 300 }),
+        getLedger(500, demoMode ? 'demo' : 'live'),
+        getSignals({ limit: 300, dashboard: demoMode ? 'demo' : 'live' }),
       ])
       const uniqueHistory = [...new Map(h.map((event) => [event.event_id, event])).values()]
       setHistory(uniqueHistory)
+      setWeightSelected((current) => current.filter((ticker) => h[0]?.weights?.[ticker] != null))
       setPrices(p)
 
       // Join each ledger event's decisions to their source signals so we can
@@ -60,7 +63,7 @@ export default function Overview() {
     }
   }
 
-  useEffect(() => { load() }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [selected, demoMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stepCount = history.length
   const idx = Math.min(activeIdx, Math.max(0, stepCount - 1))
@@ -72,7 +75,8 @@ export default function Overview() {
   // Full trajectory always shown; the scrubber just picks which step to inspect.
   const tickers = history.length ? Object.keys(history[0].weights) : []
   const labels = history.map((h) => h.timestamp.slice(5, 16).replace('T', ' '))
-  const weightSeries = tickers.map((t) => ({
+  const plottedTickers = weightSelected.length ? weightSelected : tickers
+  const weightSeries = plottedTickers.map((t) => ({
     name: t,
     values: history.map((h) => (h.weights[t] ?? 0) * 100),
   }))
@@ -131,7 +135,32 @@ export default function Overview() {
               </div>
             </div>
 
-            <LineChart labels={labels} series={weightSeries} activeIndex={idx} yFormat={(v) => `${v.toFixed(0)}%`} />
+            <div className="ticker-picker" aria-label="Weight timeline stocks">
+              <span className="muted">Plot stocks</span>
+              {tickers.map((ticker) => (
+                <button
+                  key={ticker}
+                  className={`ticker-chip ${plottedTickers.includes(ticker) ? 'active' : ''}`}
+                  onClick={() => setWeightSelected((current) => {
+                    const active = current.length ? current : tickers
+                    if (active.includes(ticker) && active.length === 1) return active
+                    return active.includes(ticker)
+                      ? active.filter((item) => item !== ticker)
+                      : [...active, ticker]
+                  })}
+                >
+                  {ticker}
+                </button>
+              ))}
+            </div>
+            <LineChart
+              labels={labels}
+              series={weightSeries}
+              activeIndex={idx}
+              hoveredName={hoveredWeight}
+              onHover={setHoveredWeight}
+              yFormat={(v) => `${v.toFixed(0)}%`}
+            />
 
             {/* Horizontal scrubber through rebalance events. */}
             <div className="scrubber">
@@ -164,7 +193,7 @@ export default function Overview() {
             <div className="step-detail">
               <div className="ts">Step {idx + 1} · {activeStep?.timestamp?.slice(0, 16).replace('T', ' ') || history[idx].timestamp.slice(0, 16).replace('T', ' ')}</div>
               {activeStep && activeStep.causes.length > 0 ? (
-                activeStep.causes.map((c) => (
+                activeStep.causes.filter((c) => c.decision !== 'skipped').map((c) => (
                   <div className="cause" key={c.key}>
                     <span className={c.delta > 0 ? 'pos' : 'neg'}>
                       {c.ticker} {(c.original * 100).toFixed(1)}% to {(c.final * 100).toFixed(1)}%

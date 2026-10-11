@@ -351,3 +351,13 @@ None.
 
 Phase 1: build the Decision Ledger + weight-history persistence, then yfinance
 integration + `/data`, with tests for portfolio invariants and ledger correctness.
+## P0.13 Dashboard isolation and timeline clarity
+
+- Added explicit live/demo dashboard scopes for signals, ledger events, and
+  weight history.
+- Prevented Strategy Lab, replay, and test/fixture rows from appearing in live
+  dashboard views.
+- Excluded no-op rebalance events from the weight-evolution plot.
+- Suppressed skipped decisions in weight-change explanations while retaining
+  them in the audit ledger.
+- Added hover highlighting and stock selection controls to the weight timeline.

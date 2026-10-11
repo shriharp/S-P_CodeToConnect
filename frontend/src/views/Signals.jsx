@@ -96,8 +96,8 @@ export default function Signals({ demoMode = false }) {
   const load = async () => {
     try {
       const [sigs, ov] = await Promise.all([
-        getSignals({ limit: 200 }),
-        getSignalsOverview(),
+        getSignals({ limit: 200, dashboard: demoMode ? 'demo' : 'live' }),
+        getSignalsOverview(demoMode ? 'demo' : 'live'),
       ])
       setSignals(sigs)
       setOverview(ov)

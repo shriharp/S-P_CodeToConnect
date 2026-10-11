@@ -7,7 +7,15 @@ const PALETTE = [
   '#0891b2', '#8a6100', '#65a30d', '#9333ea', '#565656',
 ]
 
-export default function LineChart({ labels, series, height = 260, yFormat = (v) => v, activeIndex = null }) {
+export default function LineChart({
+  labels,
+  series,
+  height = 260,
+  yFormat = (v) => v,
+  activeIndex = null,
+  hoveredName = null,
+  onHover = () => {},
+}) {
   if (!labels || labels.length === 0 || !series || series.length === 0) {
     return <p className="muted">No data yet.</p>
   }
@@ -54,7 +62,20 @@ export default function LineChart({ labels, series, height = 260, yFormat = (v) 
           .filter(Boolean)
           .join(' ')
         const color = PALETTE[si % PALETTE.length]
-        return <polyline key={s.name} points={pts} fill="none" stroke={color} strokeWidth="1.5" />
+        const muted = hoveredName && hoveredName !== s.name
+        return (
+          <polyline
+            key={s.name}
+            points={pts}
+            fill="none"
+            stroke={color}
+            strokeWidth={hoveredName === s.name ? '3' : '1.5'}
+            strokeOpacity={muted ? '0.16' : '1'}
+            onMouseEnter={() => onHover(s.name)}
+            onMouseLeave={() => onHover(null)}
+            style={{ cursor: 'crosshair' }}
+          />
+        )
       })}
       {activeIndex != null && activeIndex >= 0 && activeIndex < labels.length && (
         <line
@@ -65,10 +86,15 @@ export default function LineChart({ labels, series, height = 260, yFormat = (v) 
       )}
       {/* legend */}
       {series.map((s, si) => (
-        <g key={s.name} transform={`translate(${width - pad.right + 6}, ${pad.top + si * 14})`}>
-          <rect width="10" height="3" y="7" fill={PALETTE[si % PALETTE.length]} />
-          <text x="14" y="10" fontSize="10" fill="#374151">{s.name}</text>
-        </g>
+        (() => {
+          const muted = hoveredName && hoveredName !== s.name
+          return (
+            <g key={s.name} transform={`translate(${width - pad.right + 6}, ${pad.top + si * 14})`}>
+              <rect width="10" height="3" y="7" fill={PALETTE[si % PALETTE.length]} opacity={muted ? 0.2 : 1} />
+              <text x="14" y="10" fontSize="10" fill={muted ? '#9ca3af' : '#374151'}>{s.name}</text>
+            </g>
+          )
+        })()
       ))}
     </svg>
   )

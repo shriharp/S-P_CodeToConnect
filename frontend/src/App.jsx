@@ -21,7 +21,7 @@ export default function App() {
   const [overview, setOverview] = useState(null)
   const Active = TABS.find((t) => t.id === tab).C
   useEffect(() => {
-    getSignalsOverview().then(setOverview).catch(() => setOverview(null))
+    getSignalsOverview(demoMode ? 'demo' : 'live').then(setOverview).catch(() => setOverview(null))
   }, [tab, demoMode])
   return (
     <div className="shell">
