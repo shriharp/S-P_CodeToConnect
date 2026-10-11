@@ -42,7 +42,10 @@ The live path has two execution modes:
 
 Provider state is stored in `data/ingestion.db`, including last attempt and
 success times, newest source timestamp, cumulative fetched/analyzed/skipped
-counts, errors, and retry state. Public HTTP requests use bounded retries,
+counts, provider-specific cursors, errors, and retry state. Cursors are
+advisory checkpoints for observability and future incremental provider queries;
+item-level deduplication remains the correctness mechanism so late-arriving
+items are not lost. Public HTTP requests use bounded retries,
 exponential backoff, and `Retry-After` when providers return rate limits or
 temporary server failures. `GET /live/health` exposes this state for the
 observability screen.

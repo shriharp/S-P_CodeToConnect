@@ -86,6 +86,14 @@ deferred**, with files touched and tests run recorded on completion.
       Files: `app/ingestion/live_sources.py`, `live_poller.py`,
       `app/api/main.py`. Tests: `tests/test_public_rss.py`.
 
+- [x] **P0.12 Provider cursors and health detail.** DONE 2026-10-11.
+      Durable provider cursors now track the newest observed source item without
+      replacing item-level deduplication. System observability refreshes every
+      15 seconds and shows schedule interval, cursor, skipped count, queue
+      states, and provider errors.
+      Files: `app/ingestion/state.py`, `frontend/src/views/System.jsx`.
+      Tests: `tests/test_provider_cursor.py`.
+
 ## Approved Scope — P1 (high-value dashboard)
 
 - [x] **P1.1 Sector Exposure Heatmap.** DONE 2026-10-10. Aggregates the 10

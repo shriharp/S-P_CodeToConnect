@@ -11,7 +11,7 @@ export default function System() {
   const [liveHealth, setLiveHealth] = useState(null)
 
   useEffect(() => {
-    ;(async () => {
+    const loadHealth = async () => {
       try {
         const [c, l, h, health] = await Promise.all([
           getSignalsCount(),
@@ -27,7 +27,10 @@ export default function System() {
       } catch {
         setStatus('unreachable')
       }
-    })()
+    }
+    loadHealth()
+    const timer = setInterval(loadHealth, 15000)
+    return () => clearInterval(timer)
   }, [])
 
   const decisionCounts = ledger.reduce((acc, ev) => {
@@ -128,7 +131,7 @@ export default function System() {
         <div className="panel-head">
           <div>
             <h3>Live source health</h3>
-            <div className="sub">Durable fetch and analysis state from the backend</div>
+            <div className="sub">Durable fetch, queue, cursor, and analysis state from the backend</div>
           </div>
           <span className={`prov ${liveHealth?.scheduler_enabled ? 'prov-live' : 'prov-replay'}`}>
             {liveHealth?.scheduler_enabled ? 'scheduler on' : 'manual mode'}
@@ -136,19 +139,36 @@ export default function System() {
         </div>
         {liveHealth?.providers?.length ? (
           <table>
-            <thead><tr><th>Provider</th><th>Last success</th><th>Newest source</th><th className="num">Fetched</th><th className="num">Analyzed</th><th className="num">Errors</th></tr></thead>
+            <thead><tr><th>Provider</th><th>Schedule</th><th>Last success</th><th>Newest source</th><th>Cursor</th><th className="num">Fetched</th><th className="num">Analyzed</th><th className="num">Skipped</th><th className="num">Errors</th></tr></thead>
             <tbody>{liveHealth.providers.map((p) => (
               <tr key={p.provider}>
                 <td>{p.provider}</td>
+                <td className="muted">{p.interval_seconds}s</td>
                 <td className="muted">{p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'No successful fetch yet'}</td>
                 <td className="muted">{p.newest_source_at ? new Date(p.newest_source_at).toLocaleString() : 'n/a'}</td>
+                <td className="mono" title={p.cursor || ''}>{p.cursor ? `${p.cursor.slice(0, 18)}…` : 'n/a'}</td>
                 <td className="num">{p.fetched_count}</td>
                 <td className="num">{p.analyzed_count}</td>
+                <td className="num">{p.skipped_count}</td>
                 <td className="num">{p.error_count}</td>
               </tr>
             ))}</tbody>
           </table>
         ) : <p className="muted">No provider health data yet.</p>}
+        {liveHealth?.queue && (
+          <div className="kpis" style={{ marginTop: '1rem' }}>
+            <div className="kpi"><div className="kpi-label">Queued</div><div className="kpi-value">{liveHealth.queue.pending ?? 0}</div></div>
+            <div className="kpi"><div className="kpi-label">Processing</div><div className="kpi-value">{liveHealth.queue.processing ?? 0}</div></div>
+            <div className="kpi"><div className="kpi-label">Completed</div><div className="kpi-value">{liveHealth.queue.complete ?? 0}</div></div>
+          </div>
+        )}
+        {liveHealth?.providers?.some((p) => p.last_error) && (
+          <div className="error" style={{ marginTop: '1rem' }}>
+            {liveHealth.providers.filter((p) => p.last_error).map((p) => (
+              <div key={p.provider}><strong>{p.provider}:</strong> {p.last_error}</div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

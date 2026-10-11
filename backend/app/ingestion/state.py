@@ -79,6 +79,16 @@ class IngestionState:
                     """,
                     (provider, published_at.isoformat()),
                 )
+            current = self._conn.execute(
+                "SELECT newest_source_at FROM provider_state WHERE provider = ?",
+                (provider,),
+            ).fetchone()
+            current_timestamp = current["newest_source_at"] if current else None
+            if published_at is None or current_timestamp is None or published_at.isoformat() >= current_timestamp:
+                self._conn.execute(
+                    "UPDATE provider_state SET cursor = ? WHERE provider = ?",
+                    (external_id, provider),
+                )
             self._conn.commit()
 
     def ensure_provider(self, provider: str, interval_seconds: int) -> None:
