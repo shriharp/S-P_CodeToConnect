@@ -9,10 +9,10 @@ import System from './views/System.jsx'
 
 const TABS = [
   { id: 'overview', label: 'Overview', C: Overview },
-  { id: 'signals', label: 'Signals', C: Signals },
+  { id: 'signals', label: 'Signal Feed', C: Signals },
   { id: 'portfolio', label: 'Portfolio', C: Portfolio },
   { id: 'lab', label: 'Strategy Lab', C: StrategyLab },
-  { id: 'system', label: 'System', C: System },
+  { id: 'system', label: 'Observability', C: System },
 ]
 
 export default function App() {

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { getSignalsCount, getLedger, getWeightHistory, getBenchmark, getLiveHealth, getLiveProviderItems } from '../api.js'
+import { getSignals, getLedger, getWeightHistory, getBenchmark, getLiveHealth, getLiveProviderItems } from '../api.js'
 import { formatLocalTimestamp } from '../time.js'
+import { ModeBadge } from '../components/display.jsx'
 
 // System / Observability (lightweight): ingestion counts, provenance breakdown,
 // replay + reproducibility info, backend status. No heavy monitoring infra.
-export default function System() {
+export default function System({ demoMode = false }) {
   const [count, setCount] = useState(null)
   const [ledger, setLedger] = useState([])
   const [history, setHistory] = useState([])
@@ -19,12 +20,12 @@ export default function System() {
     const loadHealth = async () => {
       try {
         const [c, l, h, health] = await Promise.all([
-          getSignalsCount(),
-          getLedger(200),
-          getWeightHistory(),
+          getSignals({ limit: 500, dashboard: demoMode ? 'demo' : 'live' }),
+          getLedger(200, demoMode ? 'demo' : 'live'),
+          getWeightHistory(demoMode ? 'demo' : 'live'),
           getLiveHealth(),
         ])
-        setCount(c.count)
+        setCount(c.length)
         setLedger(l)
         setHistory(h)
         setLiveHealth(health)
@@ -36,7 +37,7 @@ export default function System() {
     loadHealth()
     const timer = setInterval(loadHealth, 15000)
     return () => clearInterval(timer)
-  }, [])
+  }, [demoMode])
 
   const inspectProvider = async (provider, page = 0, search = providerSearch) => {
     setProviderLoading(true)
@@ -62,8 +63,8 @@ export default function System() {
   return (
     <div>
       <div className="page-head">
-        <h2>System</h2>
-        <p>Backend status, ingestion counts, and how the three provenance modes work.</p>
+        <div className="title-row"><h2>Observability</h2><ModeBadge demoMode={demoMode} /></div>
+        <p>Pipeline health, provider state, queue activity, provenance, and model evaluation.</p>
       </div>
 
       <div className="grid-2">
@@ -71,7 +72,7 @@ export default function System() {
           <div className="panel-head">
             <div>
               <h3>System Status</h3>
-              <div className="sub">Live backend health and persisted data counts</div>
+              <div className="sub">{demoMode ? 'Historical replay data counts plus live infrastructure health' : 'Live-scoped data counts plus live infrastructure health'}</div>
             </div>
           </div>
           <div className="kpis">
@@ -84,6 +85,11 @@ export default function System() {
             <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{count ?? 'n/a'}</div></div>
             <div className="kpi"><div className="kpi-label">Rebalance events</div><div className="kpi-value">{ledger.length}</div></div>
             <div className="kpi"><div className="kpi-label">Weight points</div><div className="kpi-value">{history.length}</div></div>
+          </div>
+          <div className="kpis">
+            <div className="kpi"><div className="kpi-label">Providers with activity</div><div className="kpi-value">{liveHealth ? `${liveHealth.providers.filter((p) => p.fetched_count > 0).length}/${liveHealth.providers.length}` : 'n/a'}</div></div>
+            <div className="kpi"><div className="kpi-label">Queue pending</div><div className="kpi-value">{liveHealth?.queue?.pending ?? 0}</div></div>
+            <div className="kpi"><div className="kpi-label">Provider errors</div><div className="kpi-value">{liveHealth ? liveHealth.providers.reduce((sum, p) => sum + (p.error_count || 0), 0) : 'n/a'}</div></div>
           </div>
         </div>
 
@@ -149,7 +155,7 @@ export default function System() {
         <div className="panel-head">
           <div>
             <h3>Live source health</h3>
-            <div className="sub">Durable fetch, queue, cursor, and analysis state from the backend</div>
+            <div className="sub">Durable fetch, queue, cursor, and analysis state from the backend. Click a provider to inspect retained records.</div>
           </div>
           <span className={`prov ${liveHealth?.scheduler_enabled ? 'prov-live' : 'prov-replay'}`}>
             {liveHealth?.scheduler_enabled ? 'scheduler on' : 'manual mode'}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getLedger, getWeightHistory, getSectors, getPerformance } from '../api.js'
 import LineChart from '../components/LineChart.jsx'
 import Pagination, { usePagination } from '../components/Pagination.jsx'
+import { ModeBadge } from '../components/display.jsx'
 
 const pct = (w) => `${(w * 100).toFixed(2)}%`
 const LEDGER_PAGE_SIZE = 4
@@ -72,8 +73,8 @@ export default function Portfolio({ demoMode = false }) {
   return (
     <div>
       <div className="page-head">
-        <h2>Portfolio</h2>
-        <p>Current mock allocation, sector exposure, descriptive performance, and the auditable decision ledger.</p>
+        <div className="title-row"><h2>Portfolio</h2><ModeBadge demoMode={demoMode} /></div>
+        <p>{demoMode ? 'Demo replay allocation history and auditable policy decisions.' : 'Live allocation history, sector exposure, and auditable policy decisions.'}</p>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -85,6 +86,20 @@ export default function Portfolio({ demoMode = false }) {
               <h3>Current Holdings</h3>
               <div className="sub">Latest target allocation. Proposed mock weights, not executed.</div>
             </div>
+          </div>
+
+          <div className="panel policy-panel">
+            <div className="panel-head">
+              <div>
+                <h3>Allocation policy</h3>
+                <div className="sub">Module A applies transparent controls before recording a target allocation.</div>
+              </div>
+            </div>
+            <p className="muted" style={{ marginBottom: 0 }}>
+              Favorable sentiment increases a company&apos;s mock weight and unfavorable sentiment decreases it.
+              Position caps, freshness gates, duplicate checks, and normalization are applied before the final
+              allocation is recorded. These are proposed mock allocations, not executed holdings.
+            </p>
           </div>
           {latest ? (
             <table>
@@ -113,7 +128,7 @@ export default function Portfolio({ demoMode = false }) {
           <div className="panel-head">
             <div>
               <h3>Sector Exposure</h3>
-              <div className="sub">First to latest rebalance. Bar length is exposure; shading is concentration.</div>
+              <div className="sub">First to latest scoped rebalance. Center is zero change; red moves left and green moves right.</div>
             </div>
           </div>
           {sectorRows.length ? (

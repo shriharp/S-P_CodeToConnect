@@ -27,10 +27,10 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
     <aside className="context-rail" aria-label="Context panel">
       <section className="rail-card">
         <div className="rail-label">Data mode</div>
-        <div className="rail-mode">{demoMode ? 'Curated demo corpus' : 'Live sources'}</div>
+        <div className="rail-mode">{demoMode ? 'Historical replay corpus' : 'Live sources'}</div>
         <p className="muted">
           {demoMode
-            ? 'Evidence-rich replay data for a stable walkthrough.'
+            ? 'Evidence-rich deterministic replay for a stable walkthrough. It is never presented as current live data.'
             : 'News, social posts, and prices are fetched on demand.'}
         </p>
         <label className="toggle-row">
@@ -74,8 +74,17 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
         <div className="rail-label">Signal quality</div>
         <div className="rail-stat">{qualityRate == null ? 'No data' : `${qualityRate}% field completeness`}</div>
         <p className="muted">
-          {total ? `${total} stored signals. This measures usable scores, not model accuracy.` : 'Poll live sources or load the demo corpus.'}
+          {total ? `${total} stored signals. This measures field completeness, not model accuracy.` : 'Run live ingestion or start the historical replay.'}
         </p>
+      </section>
+
+      <section className="rail-card">
+        <div className="rail-label">Provenance</div>
+        <div className="provenance-legend">
+          <span><i className="legend-dot legend-live" /> Live provider data</span>
+          <span><i className="legend-dot legend-replay" /> Historical replay corpus</span>
+          <span><i className="legend-dot legend-synthetic" /> Read-only scenario</span>
+        </div>
       </section>
 
       <section className="rail-card">

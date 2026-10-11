@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import LineChart from '../components/LineChart.jsx'
 import { getWeightHistory, getPrices, getLedger, getSignals } from '../api.js'
 import { formatLocalShortTimestamp, formatLocalTimestamp } from '../time.js'
+import { ModeBadge } from '../components/display.jsx'
 
 // Overview / Command Center: portfolio KPIs, the Weight Evolution Timeline,
 // and a horizontal scrubber to step through rebalance events. Dragging the
@@ -17,6 +18,7 @@ export default function Overview({ demoMode = false }) {
   const [hoveredWeight, setHoveredWeight] = useState(null)
   const [hoveredPrice, setHoveredPrice] = useState(null)
   const [activeIdx, setActiveIdx] = useState(0)
+  const [eventFilter, setEventFilter] = useState('all')
 
   const load = async () => {
     try {
@@ -69,20 +71,33 @@ export default function Overview({ demoMode = false }) {
 
   useEffect(() => { load() }, [selected, demoMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stepCount = history.length
+  const filteredHistory = history.filter((event) => {
+    const step = steps.find((item) => item.event_id === event.event_id)
+    const hasChange = Boolean(step?.causes?.length)
+    return eventFilter === 'all' || (eventFilter === 'changes' ? hasChange : !hasChange)
+  })
+  const stepCount = filteredHistory.length
   const idx = Math.min(activeIdx, Math.max(0, stepCount - 1))
-  const activeHistory = history[idx] || null
+  const activeHistory = filteredHistory[idx] || null
   const activeStep = activeHistory
     ? steps.find((step) => step.event_id === activeHistory.event_id) || null
     : null
+  const noOpCount = filteredHistory.filter((event) => {
+    const step = steps.find((item) => item.event_id === event.event_id)
+    return !step?.causes?.length
+  }).length
+  const changingCount = Math.max(0, stepCount - noOpCount)
+  const scopedSteps = filteredHistory.map((event) => steps.find((step) => step.event_id === event.event_id)).filter(Boolean)
+  const signalCount = scopedSteps.reduce((sum, step) => sum + (step.decisions || []).length, 0)
+  const consumedCount = new Set(scopedSteps.flatMap((step) => step.consumed_signal_ids || [])).size
 
   // Full trajectory always shown; the scrubber just picks which step to inspect.
   const tickers = history.length ? Object.keys(history[0].weights) : []
-  const labels = history.map((h) => formatLocalShortTimestamp(h.timestamp))
+  const labels = filteredHistory.map((h) => formatLocalShortTimestamp(h.timestamp))
   const plottedTickers = weightSelected || []
   const weightSeries = plottedTickers.map((t) => ({
     name: t,
-    values: history.map((h) => (h.weights[t] ?? 0) * 100),
+    values: filteredHistory.map((h) => (h.weights[t] ?? 0) * 100),
   }))
 
   // Price overlay: indexed to 100 at first point so it shares the weight axis.
@@ -105,8 +120,8 @@ export default function Overview({ demoMode = false }) {
   return (
     <div>
       <div className="page-head">
-        <h2>Overview</h2>
-        <p>Portfolio weight evolution across rebalance events. Scrub through time to see what moved, and why.</p>
+        <div className="title-row"><h2>Overview</h2><ModeBadge demoMode={demoMode} /></div>
+        <p>{demoMode ? 'Evidence-rich historical replay through the same signal-to-allocation pipeline.' : 'Current live ingestion events, including retained no-op decisions and policy-gated signals.'}</p>
       </div>
 
       <div className="panel">
@@ -114,8 +129,19 @@ export default function Overview({ demoMode = false }) {
           <div>
             <h3>Weight Evolution Timeline</h3>
             <div className="sub">
-              {stepCount} rebalance event(s) · proposed mock weights, not executed holdings
+              {stepCount} scoped events · {changingCount} allocation-changing · {noOpCount} no-op · proposed mock weights, not executed holdings
             </div>
+          </div>
+          <div className="seg">
+            {[
+              ['all', 'All events'],
+              ['changes', 'Changes only'],
+              ['noop', 'No-op only'],
+            ].map(([value, label]) => (
+              <button key={value} className={eventFilter === value ? 'active' : ''} onClick={() => { setEventFilter(value); setActiveIdx(0) }}>
+                {label}
+              </button>
+            ))}
           </div>
         </div>
         {error && <div className="error">{error}</div>}
@@ -126,6 +152,12 @@ export default function Overview({ demoMode = false }) {
 
         {stepCount > 0 && (
           <>
+            <div className="proof-grid">
+              <div><strong>{stepCount}</strong><span>events retained</span></div>
+              <div><strong>{signalCount}</strong><span>signals attached</span></div>
+              <div><strong>{consumedCount}</strong><span>signals consumed</span></div>
+              <div><strong>{noOpCount}</strong><span>policy-gated/no-op</span></div>
+            </div>
             <div className="kpis">
               {topWeights.map(([t, w]) => (
                 <div className="kpi" key={t}>
@@ -189,17 +221,17 @@ export default function Overview({ demoMode = false }) {
                 </div>
               </div>
               <div className="scrubber-ticks">
-                <span className="scrubber-tick">{formatLocalShortTimestamp(history[0].timestamp).slice(0, 5)}</span>
+                <span className="scrubber-tick">{formatLocalShortTimestamp(filteredHistory[0].timestamp).slice(0, 5)}</span>
                 <span className="scrubber-tick active">
                   {formatLocalTimestamp(history[idx].timestamp)}
                 </span>
-                <span className="scrubber-tick">{formatLocalShortTimestamp(history[stepCount - 1].timestamp).slice(0, 5)}</span>
+                <span className="scrubber-tick">{formatLocalShortTimestamp(filteredHistory[stepCount - 1].timestamp).slice(0, 5)}</span>
               </div>
             </div>
 
             {/* Show only the active step justification. */}
             <div className="step-detail">
-              <div className="ts">Step {idx + 1} · {formatLocalTimestamp(activeStep?.timestamp || history[idx].timestamp)}</div>
+              <div className="ts">Step {idx + 1} of {stepCount} · {formatLocalTimestamp(activeStep?.timestamp || filteredHistory[idx].timestamp)} · {(activeStep?.decisions || []).length} decisions</div>
               {activeStep && activeStep.causes.length > 0 ? (
                 activeStep.causes.filter((c) => c.decision !== 'skipped').map((c) => (
                   <div className="cause" key={c.key}>
@@ -215,7 +247,9 @@ export default function Overview({ demoMode = false }) {
                 ))
               ) : (
                 <p className="muted" style={{ margin: 0 }}>
-                  No weight change at this step. All signals were skipped by policy gates.
+                  <strong>No allocation change</strong>
+                  <br />
+                  Signals were retained for auditability, but none passed the freshness, evidence, confidence, or portfolio-policy gates required to change a mock allocation.
                 </p>
               )}
             </div>

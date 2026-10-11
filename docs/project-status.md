@@ -419,3 +419,25 @@ integration + `/data`, with tests for portfolio invariants and ledger correctnes
   raw ISO slicing/UTC display path was removed.
 - The frontend explicitly tells users that timestamps are mapped to their
   browser's local timezone.
+
+## Judge-facing frontend freeze pass
+
+- Added highly visible LIVE MODE and DEMO REPLAY badges to the walkthrough
+  surfaces, with an always-visible provenance legend in the context rail.
+- Renamed Signals to Signal Feed and System to Observability for clearer
+  presentation language.
+- Overview now exposes scoped event, decision, consumed-signal, allocation-change,
+  and policy-gated/no-op counts, plus All events, Changes only, and No-op only
+  filtering.
+- No-op live events are presented as retained policy-gated abstentions, not
+  model failures or successful allocation changes.
+- Signal Detail now uses browser-local timestamps and distinguishes abstained,
+  not-determined, and provider-not-identified values from neutral values.
+- Observability counts are scoped to the active live/replay view while its
+  infrastructure health remains explicit; provider activity, queue backlog, and
+  provider error summary cards are visible.
+- Portfolio now explains Module A's sentiment direction, policy gates,
+  normalization, and mock-allocation semantics. Strategy Lab now presents a
+  three-stage flow, prepared scenarios, and a prominent read-only counterfactual
+  label.
+- Validation: frontend production build passed and `git diff --check` passed.

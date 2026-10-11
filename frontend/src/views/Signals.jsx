@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { getSignals, livePoll, getSignalsOverview, runDemoReplay } from '../api.js'
-import { CategoryCell, FlagList } from '../components/display.jsx'
+import { CategoryCell, FlagList, ProviderLabel } from '../components/display.jsx'
+import { ModeBadge } from '../components/display.jsx'
+import { formatLocalTimestamp } from '../time.js'
 import Pagination, { usePagination } from '../components/Pagination.jsx'
 
 const PAGE_SIZE = 12
 
 function SentimentCell({ v }) {
-  if (v === null || v === undefined) return <span className="muted">null</span>
+  if (v === null || v === undefined) return <span className="muted">not determined</span>
   const cls = v < 0 ? 'neg' : v > 0 ? 'pos' : 'neu'
   return <span className={`sent ${cls}`}>{v.toFixed(2)}</span>
 }
@@ -35,7 +37,7 @@ function SignalDetail({ signal, onClose }) {
         <div>
           <h3>{signal.company_name} ({signal.ticker || 'unresolved'})</h3>
           <div className="sub">
-            <ProvenanceBadge p={signal.provenance} /> | {signal.source_type} | {signal.source_provider}
+            <ProvenanceBadge p={signal.provenance} /> | {signal.source_type} | <ProviderLabel provider={signal.source_provider} />
           </div>
         </div>
         <button className="ghost" onClick={onClose}>Close</button>
@@ -43,11 +45,11 @@ function SignalDetail({ signal, onClose }) {
       <div className="grid-2">
         <table>
           <tbody>
-            <tr><th>Event</th><td><CategoryCell signal={signal} /></td></tr>
-            <tr><th>Sentiment</th><td><SentimentCell v={signal.sentiment_score} /></td></tr>
-            <tr><th>Impact</th><td>{signal.impact_score ?? 'null'} / 10</td></tr>
+            <tr><th>Event</th><td>{signal.event_category === 'Unknown' ? 'Abstained' : <CategoryCell signal={signal} />}</td></tr>
+            <tr><th>Sentiment</th><td>{signal.sentiment_score == null ? 'Not determined' : <SentimentCell v={signal.sentiment_score} />}</td></tr>
+            <tr><th>Impact</th><td>{signal.impact_score == null ? 'Not determined' : `${signal.impact_score} / 10`}</td></tr>
             <tr><th>Status</th><td>{signal.analysis_status}</td></tr>
-            <tr><th>Published</th><td>{signal.published_at || 'null'}</td></tr>
+            <tr><th>Published</th><td>{formatLocalTimestamp(signal.published_at)} <span className="muted">· browser timezone</span></td></tr>
             <tr><th>Method</th><td className="mono">{signal.analysis_method_version}</td></tr>
           </tbody>
         </table>
@@ -171,14 +173,14 @@ export default function Signals({ demoMode = false }) {
   return (
     <div>
       <div className="page-head">
-        <h2>Signals</h2>
-        <p>Live-ingested news and social signals, analyzed and scored. Click a row to inspect its evidence.</p>
+        <div className="title-row"><h2>Signal Feed</h2><ModeBadge demoMode={demoMode} /></div>
+        <p>{demoMode ? 'Historical replay signals analyzed through the same pipeline.' : 'Live-ingested news and social signals, analyzed and scored. Click a row to inspect evidence.'}</p>
       </div>
 
       <div className="panel">
         <div className="panel-head">
           <div>
-            <h3>Live Ingestion</h3>
+            <h3>{demoMode ? 'Historical Replay' : 'Live Ingestion'}</h3>
             <div className="sub">{demoMode ? 'Curated 40-item replay corpus with complete timestamps and evidence' : 'GDELT news, StockTwits social, Reddit RSS, and yfinance prices'}</div>
           </div>
           <button className="action" onClick={demoMode ? loadDemo : poll} disabled={polling}>
@@ -260,7 +262,7 @@ export default function Signals({ demoMode = false }) {
           <thead>
             <tr>
               <th>Company</th><th className="num">Sent.</th><th className="num">Impact</th>
-              <th>Event</th><th>Provenance</th><th>Flags</th>
+              <th>Event</th><th>Source</th><th>Time</th><th>Provenance</th><th>Flags</th>
             </tr>
           </thead>
           <tbody>
@@ -270,12 +272,14 @@ export default function Signals({ demoMode = false }) {
                 <td className="num"><SentimentCell v={s.sentiment_score} /></td>
                 <td className="num">{s.impact_score ?? 'n/a'}</td>
                 <td><CategoryCell signal={s} /></td>
+                <td className="muted"><ProviderLabel provider={s.source_provider} /></td>
+                <td className="muted">{formatLocalTimestamp(s.published_at)}</td>
                 <td><ProvenanceBadge p={s.provenance} /></td>
                 <td><FlagList flags={s.quality_flags} /></td>
               </tr>
             ))}
             {ordered.length === 0 && (
-              <tr><td colSpan={6}><div className="empty">No signals yet. Poll live sources or load the demo corpus.</div></td></tr>
+              <tr><td colSpan={8}><div className="empty">No signals yet. Run a live ingestion cycle or start the historical replay.</div></td></tr>
             )}
           </tbody>
         </table>

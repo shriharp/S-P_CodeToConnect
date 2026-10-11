@@ -33,7 +33,13 @@ export function CategoryCell({ signal }) {
   if (label === 'Social chatter') {
     return <span className="muted" title="Sentiment-only social post; no distinct financial event.">{label}</span>
   }
+
   return <>{label}</>
+}
+
+export function ProviderLabel({ provider }) {
+  if (!provider || provider === 'unknown') return <span className="muted" title="The upstream record did not identify its provider.">Provider not identified</span>
+  return <span>{provider}</span>
 }
 
 export function FlagList({ flags }) {
@@ -44,5 +50,13 @@ export function FlagList({ flags }) {
         <span className="flag" key={f} title={FLAG_MEANINGS[f] || ''}>{f}</span>
       ))}
     </>
+  )
+}
+
+export function ModeBadge({ demoMode }) {
+  return (
+    <span className={`mode-badge ${demoMode ? 'mode-replay' : 'mode-live'}`}>
+      {demoMode ? 'DEMO REPLAY' : 'LIVE MODE'}
+    </span>
   )
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getSectors, simulateText } from '../api.js'
+import { ModeBadge } from '../components/display.jsx'
 
 const pct = (value) => `${(value * 100).toFixed(2)}%`
 
@@ -15,6 +16,11 @@ export default function StrategyLab() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [running, setRunning] = useState(false)
+  const examples = [
+    ['Apple guidance cut', 'Apple cuts revenue guidance after weaker-than-expected demand.'],
+    ['Multi-company scenario', 'Apple cuts revenue guidance while Microsoft wins a major cloud contract.'],
+    ['Energy disruption', 'ExxonMobil faces a supply disruption that could reduce quarterly production.'],
+  ]
 
   useEffect(() => {
     getSectors().then((sectors) => setTickers(Object.keys(sectors))).catch(() => {})
@@ -41,7 +47,7 @@ export default function StrategyLab() {
   return (
     <>
       <div className="page-head">
-        <h2>Strategy Lab</h2>
+        <div className="title-row"><h2>Strategy Lab</h2><span className="mode-badge mode-readonly">READ-ONLY COUNTERFACTUAL</span></div>
         <p>Turn a news scenario into company-specific signals and a read-only portfolio counterfactual. Nothing here mutates the live feed or decision ledger.</p>
       </div>
 
@@ -61,6 +67,13 @@ export default function StrategyLab() {
           placeholder="Example: Apple cut revenue guidance while Microsoft won a cloud contract."
           aria-label="What-if scenario text"
         />
+        <div className="example-row">
+          <span className="muted">Load example:</span>
+          {examples.map(([label, value]) => <button className="ghost" key={label} onClick={() => setText(value)}>{label}</button>)}
+        </div>
+        <div className="pipeline-steps">
+          <span>1. Interpret text</span><span>2. Resolve companies and signals</span><span>3. Apply allocation policy</span>
+        </div>
         <p className="muted">Use real or hypothetical text. Results are a mock allocation, not an investment prediction.</p>
         {error && <div className="error">{error}</div>}
 
