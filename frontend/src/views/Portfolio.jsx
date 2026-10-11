@@ -55,8 +55,14 @@ export default function Portfolio() {
     .sort((a, b) => b.now - a.now)
   const maxDelta = Math.max(...sectorRows.map((r) => Math.abs(r.delta)), 0.01)
 
-  // Ledger is newest-first; paginate it.
-  const { slice: ledgerPage, page, setPage, total, pageSize } = usePagination(ledger, LEDGER_PAGE_SIZE)
+  // Paginate individual ticker decisions, not rebalance event headings.
+  const decisions = ledger.flatMap((ev) => (ev.decisions || []).map((decision, index) => ({
+    ...decision,
+    eventId: ev.event_id,
+    timestamp: ev.timestamp,
+    decisionIndex: index,
+  })))
+  const { slice: decisionPage, page, setPage, total, pageSize } = usePagination(decisions, LEDGER_PAGE_SIZE)
 
   return (
     <div>
@@ -173,43 +179,35 @@ export default function Portfolio() {
             <div className="sub">Auditable record of every rebalance. Decision, reason, and before to after weight.</div>
           </div>
         </div>
-        {ledger.length ? (
-          ledgerPage.map((ev) => (
-            <div key={ev.event_id} className="ledger-event">
-              <div className="ledger-head">
-                <strong className="mono">{ev.event_id}</strong>
-                <span className="muted">{ev.timestamp?.slice(0, 16).replace('T', ' ')}</span>
-                <span className="faint">policy {ev.policy_version}</span>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Ticker</th><th>Decision</th><th>Reason</th>
-                    <th className="num">Before</th><th className="num">After</th><th className="num">Δ</th>
+        {decisions.length ? (
+          <table>
+            <thead>
+              <tr>
+                <th>Event</th><th>Ticker</th><th>Decision</th><th>Reason</th>
+                <th className="num">Before</th><th className="num">After</th><th className="num">Δ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {decisionPage.map((d) => {
+                const delta = d.original_weight != null && d.final_weight != null
+                  ? d.final_weight - d.original_weight
+                  : null
+                return (
+                  <tr key={`${d.eventId}-${d.decisionIndex}`}>
+                    <td className="mono">{d.eventId}</td>
+                    <td>{d.ticker || 'n/a'}</td>
+                    <td><span className={`dec dec-${d.decision}`}>{d.decision}</span></td>
+                    <td className="muted">{d.reason || 'n/a'}</td>
+                    <td className="num">{d.original_weight == null ? 'n/a' : pct(d.original_weight)}</td>
+                    <td className="num">{d.final_weight == null ? 'n/a' : pct(d.final_weight)}</td>
+                    <td className={`num ${delta > 1e-9 ? 'pos' : delta < -1e-9 ? 'neg' : 'muted'}`}>
+                      {delta == null ? 'n/a' : `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(2)} pp`}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {ev.decisions.map((d, i) => {
-                    const before = d.original_weight
-                    const after = d.final_weight
-                    const delta = before != null && after != null ? after - before : null
-                    return (
-                      <tr key={i}>
-                        <td>{d.ticker || 'n/a'}</td>
-                        <td><span className={`dec dec-${d.decision}`}>{d.decision}</span></td>
-                        <td className="muted">{d.reason || 'n/a'}</td>
-                        <td className="num">{before == null ? 'n/a' : pct(before)}</td>
-                        <td className="num">{after == null ? 'n/a' : pct(after)}</td>
-                        <td className={`num ${delta > 1e-9 ? 'pos' : delta < -1e-9 ? 'neg' : 'muted'}`}>
-                          {delta == null ? 'n/a' : `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(2)} pp`}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ))
+                )
+              })}
+            </tbody>
+          </table>
         ) : (
           <div className="empty">Ledger empty.</div>
         )}

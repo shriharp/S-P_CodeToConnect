@@ -19,16 +19,18 @@ export default function Overview() {
       const [h, p, led, sigs] = await Promise.all([
         getWeightHistory(),
         getPrices(selected.join(',')),
-        getLedger(100),
+        getLedger(500),
         getSignals({ limit: 300 }),
       ])
-      setHistory(h)
+      const uniqueHistory = [...new Map(h.map((event) => [event.event_id, event])).values()]
+      setHistory(uniqueHistory)
       setPrices(p)
 
       // Join each ledger event's decisions to their source signals so we can
       // show "headline -> weight move" causality per step.
       const byId = new Map(sigs.map((s) => [s.signal_id, s]))
-      const chron = [...led].reverse() // oldest first, matches weight-history order
+      const uniqueLedger = [...new Map(led.map((event) => [event.event_id, event])).values()]
+      const chron = [...uniqueLedger].reverse() // oldest first
       setSteps(
         chron.map((ev) => ({
           ...ev,
@@ -51,6 +53,7 @@ export default function Overview() {
             .filter((c) => Math.abs(c.delta) > 1e-9),
         }))
       )
+      setActiveIdx(0)
       setError(null)
     } catch (e) {
       setError(e.message)

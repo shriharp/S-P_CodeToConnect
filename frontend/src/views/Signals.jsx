@@ -169,7 +169,7 @@ export default function Signals({ demoMode = false }) {
             {pollResult.signals.length} new signal(s) ·{' '}
             {pollResult.decision_event.consumed_signal_ids.length} consumed
             {pollResult.source_counts?.fetched?.reddit != null && (
-              <> · Reddit RSS: {pollResult.source_counts.fetched.reddit} posts fetched, {pollResult.source_counts.analyzed.reddit} analyzed</>
+              <> | Reddit RSS: {pollResult.source_counts.fetched.reddit} fetched, {pollResult.source_counts.analyzed.reddit} analyzed, {pollResult.skipped_seen} already seen</>
             )}
             {errKeys.length > 0 && <> · degraded: {errKeys.join(', ')}</>}
           </p>

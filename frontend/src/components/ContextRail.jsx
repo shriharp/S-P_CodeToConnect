@@ -5,7 +5,7 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
   const nullSentiment = overview?.sentiment?.null ?? 0
   const nullImpact = overview?.impact?.null ?? 0
   const qualityRate = total
-    ? Math.max(0, Math.round(((total - nullSentiment - nullImpact) / (total * 2)) * 100))
+    ? Math.round(((2 * total - nullSentiment - nullImpact) / (2 * total)) * 100)
     : null
 
   return (
