@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from app.core.entities import COMPANIES
 from app.core.signal_contract import SourceType
 from app.ingestion.adapters import RawSourceItem
+from app.ingestion.retry import request_with_backoff
 
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 STOCKTWITS_URL = "https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json"
@@ -36,7 +37,11 @@ _TIMEOUT = 15
 
 def _get_json(url: str) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+    response = request_with_backoff(
+        lambda timeout: urllib.request.urlopen(req, timeout=timeout),
+        timeout=_TIMEOUT,
+    )
+    with response as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

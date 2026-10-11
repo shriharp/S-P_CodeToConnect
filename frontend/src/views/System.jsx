@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignalsCount, getLedger, getWeightHistory, getBenchmark } from '../api.js'
+import { getSignalsCount, getLedger, getWeightHistory, getBenchmark, getLiveHealth } from '../api.js'
 
 // System / Observability (lightweight): ingestion counts, provenance breakdown,
 // replay + reproducibility info, backend status. No heavy monitoring infra.
@@ -8,18 +8,21 @@ export default function System() {
   const [ledger, setLedger] = useState([])
   const [history, setHistory] = useState([])
   const [status, setStatus] = useState('checking')
+  const [liveHealth, setLiveHealth] = useState(null)
 
   useEffect(() => {
     ;(async () => {
       try {
-        const [c, l, h] = await Promise.all([
+        const [c, l, h, health] = await Promise.all([
           getSignalsCount(),
           getLedger(200),
           getWeightHistory(),
+          getLiveHealth(),
         ])
         setCount(c.count)
         setLedger(l)
         setHistory(h)
+        setLiveHealth(health)
         setStatus('ok')
       } catch {
         setStatus('unreachable')
@@ -121,6 +124,32 @@ export default function System() {
       </div>
 
       <BenchmarkPanel />
+      <div className="panel">
+        <div className="panel-head">
+          <div>
+            <h3>Live source health</h3>
+            <div className="sub">Durable fetch and analysis state from the backend</div>
+          </div>
+          <span className={`prov ${liveHealth?.scheduler_enabled ? 'prov-live' : 'prov-replay'}`}>
+            {liveHealth?.scheduler_enabled ? 'scheduler on' : 'manual mode'}
+          </span>
+        </div>
+        {liveHealth?.providers?.length ? (
+          <table>
+            <thead><tr><th>Provider</th><th>Last success</th><th>Newest source</th><th className="num">Fetched</th><th className="num">Analyzed</th><th className="num">Errors</th></tr></thead>
+            <tbody>{liveHealth.providers.map((p) => (
+              <tr key={p.provider}>
+                <td>{p.provider}</td>
+                <td className="muted">{p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'No successful fetch yet'}</td>
+                <td className="muted">{p.newest_source_at ? new Date(p.newest_source_at).toLocaleString() : 'n/a'}</td>
+                <td className="num">{p.fetched_count}</td>
+                <td className="num">{p.analyzed_count}</td>
+                <td className="num">{p.error_count}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        ) : <p className="muted">No provider health data yet.</p>}
+      </div>
     </div>
   )
 }

@@ -35,6 +35,8 @@ def poll_live(
     sentiment_backend: str = "model",
     event_backend: str = "hybrid",
     seen_source=None,
+    seen_item=None,
+    record_item=None,
 ) -> dict:
     """One live ingestion cycle across all three free sources.
 
@@ -58,9 +60,14 @@ def poll_live(
         nonlocal skipped_seen
         out = []
         for item in items:
-            if seen_source is not None and seen_source(item.external_id):
+            if (
+                (seen_source is not None and seen_source(item.external_id))
+                or (seen_item is not None and seen_item(item))
+            ):
                 skipped_seen += 1
                 continue
+            if record_item is not None:
+                record_item(item, "fetched")
             out.extend(
                 analyze_item(item, provenance=Provenance.live.value,
                              sentiment_backend=sentiment_backend,

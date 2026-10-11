@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 from app.core.signal_contract import RiskSignal, SourceType
 from app.ingestion.adapters import normalize_item
+from app.ingestion.scheduler import IngestionScheduler
+from app.ingestion.state import IngestionState
 from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
@@ -19,9 +21,12 @@ app = FastAPI(title="Risk Engine API", version="0.1.0")
 RECORDINGS_DIR = Path(__file__).resolve().parents[2] / "recordings"
 DB_PATH = Path(__file__).resolve().parents[2] / "data" / "signals.db"
 LEDGER_PATH = Path(__file__).resolve().parents[2] / "data" / "ledger.db"
+INGESTION_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "ingestion.db"
 
 _store: SignalStore | None = None
 _ledger: RebalanceStore | None = None
+_ingestion_state: IngestionState | None = None
+_scheduler: IngestionScheduler | None = None
 
 
 def get_store() -> SignalStore:
@@ -38,15 +43,58 @@ def get_ledger() -> RebalanceStore:
     return _ledger
 
 
+def get_ingestion_state() -> IngestionState:
+    global _ingestion_state
+    if _ingestion_state is None:
+        _ingestion_state = IngestionState(INGESTION_STATE_PATH)
+        for provider, interval in (
+            ("gdelt", 300), ("stocktwits", 30), ("reddit:r/stocks", 120), ("yfinance", 30)
+        ):
+            _ingestion_state.ensure_provider(provider, interval)
+    return _ingestion_state
+
+
+def _run_scheduled_poll() -> None:
+    # Scheduler persistence is deliberately routed through the same path as a
+    # manual poll, so both modes share deduplication and ledger semantics.
+    from app.ingestion.live_poller import poll_live
+
+    state = get_ingestion_state()
+    out = poll_live(news_query="apple OR microsoft OR jpmorgan OR pfizer OR exxon",
+                   seen_source=get_store().has_source_item,
+                   seen_item=lambda item: state.seen(item.provider, item.external_id),
+                   record_item=lambda item, status: state.record_item(
+                       item.provider, item.external_id, item.published_at, status
+                   ))
+    for sig in out["signals"]:
+        get_store().save(sig)
+        state.record_item(sig.source_provider, sig.source_item_id, sig.published_at, "analyzed")
+    event = out["decision_event"]
+    event_id = f"scheduled-{out['polled_at'].replace(':', '').replace('.', '')}"
+    get_ledger().append(event_from_result(event, event_id, datetime.fromisoformat(out["polled_at"])))
+
+
+@app.on_event("startup")
+def _start_scheduler() -> None:
+    global _scheduler
+    _scheduler = IngestionScheduler(_run_scheduled_poll)
+    _scheduler.start()
+
+
 @app.on_event("shutdown")
 def _close_stores() -> None:
-    global _store, _ledger
+    global _store, _ledger, _ingestion_state, _scheduler
+    if _scheduler is not None:
+        _scheduler.stop()
     if _store is not None:
         _store.close()
         _store = None
     if _ledger is not None:
         _ledger.close()
         _ledger = None
+    if _ingestion_state is not None:
+        _ingestion_state.close()
+        _ingestion_state = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -58,7 +106,12 @@ class AnalyzeRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": "0.1.0", "scheduler_enabled": bool(_scheduler and _scheduler.enabled)}
+
+
+@app.get("/live/health")
+def live_health(state: IngestionState = Depends(get_ingestion_state)) -> dict:
+    return {"scheduler_enabled": bool(_scheduler and _scheduler.enabled), "providers": state.health()}
 
 
 @app.post("/analyze", response_model=RiskSignal)
@@ -445,6 +498,7 @@ def live_poll(
     news_query: str = "apple OR microsoft OR jpmorgan OR pfizer OR exxon",
     ledger: RebalanceStore = Depends(get_ledger),
     store: SignalStore = Depends(get_store),
+    state: IngestionState = Depends(get_ingestion_state),
 ) -> dict:
     """One live ingestion cycle: GDELT news + StockTwits social + yfinance quotes.
 
@@ -454,10 +508,43 @@ def live_poll(
     """
     from app.ingestion.live_poller import poll_live
 
-    out = poll_live(news_query=news_query, seen_source=store.has_source_item)
+    out = poll_live(
+        news_query=news_query,
+        seen_source=store.has_source_item,
+        seen_item=lambda item: state.seen(item.provider, item.external_id),
+        record_item=lambda item, status: state.record_item(
+            item.provider, item.external_id, item.published_at, status
+        ),
+    )
     event = out["decision_event"]
     for sig in out["signals"]:
         store.save(sig)
+        state.record_item(sig.source_provider, sig.source_item_id, sig.published_at, "analyzed")
+    fetched = out.get("source_counts", {}).get("fetched", {})
+    analyzed = out.get("source_counts", {}).get("analyzed", {})
+    provider_map = {
+        "gdelt_news": "gdelt",
+        "stocktwits": "stocktwits",
+        "reddit": "reddit:r/stocks",
+    }
+    for key, provider in provider_map.items():
+        state.update_provider(
+            provider,
+            attempted=True,
+            success=provider not in out.get("source_errors", {}),
+            fetched=fetched.get(key, 0),
+            analyzed=analyzed.get(key, 0),
+            skipped=out.get("skipped_seen", 0) if key == "stocktwits" else 0,
+            error=out.get("source_errors", {}).get(provider)
+                or out.get("source_errors", {}).get("news" if key == "gdelt_news" else f"social:{provider.split(':')[0]}"),
+        )
+    state.update_provider(
+        "yfinance",
+        attempted=True,
+        success="quotes" not in out.get("source_errors", {}),
+        fetched=len(out.get("quotes", {})),
+        error=out.get("source_errors", {}).get("quotes"),
+    )
     event_id = f"live-{out['polled_at'].replace(':', '').replace('.', '')}"
     ledger.append(event_from_result(event, event_id, datetime.fromisoformat(out["polled_at"])))
 

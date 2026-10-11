@@ -1,6 +1,6 @@
 # Project Status
 
-Last verified: 2026-10-09, against the repository and a passing test run (64 tests).
+Last verified: 2026-10-11, against the repository and a passing test run (123 tests).
 
 Baseline: the AI/NLP Risk Engine and Module A are functionally complete and
 exceed the core technical bar. Work is now the approved dashboard/infrastructure
@@ -42,6 +42,18 @@ deferred**, with files touched and tests run recorded on completion.
       `live_poller.py`, `frontend/src/views/*`.
       KNOWN GAP: GDELT news path unconfirmed live (429 under repeated test
       bursts; needs one clean-network verification).
+
+- [x] **P0.7 Live ingestion reliability foundation.** DONE 2026-10-11.
+      Added durable provider health and source-item state in
+      `data/ingestion.db`, bounded public-provider retries with exponential
+      backoff and `Retry-After`, an optional backend-owned scheduler, and
+      `GET /live/health`. The scheduler defaults off for tests and one-off
+      development runs; enable it explicitly with
+      `INGESTION_SCHEDULER_ENABLED=true`. The current poll cycle remains the
+      compatibility path while queue/SSE decoupling is implemented next.
+      Files: `backend/app/ingestion/state.py`,
+      `backend/app/ingestion/retry.py`, `backend/app/ingestion/scheduler.py`,
+      `backend/app/api/main.py`, `frontend/src/views/System.jsx`.
 
 ## Approved Scope — P1 (high-value dashboard)
 

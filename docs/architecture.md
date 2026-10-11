@@ -19,11 +19,29 @@ Convert unstructured financial news and social text into company-specific, expla
 - React frontend.
 - FastAPI backend.
 - Pydantic validation.
-- Database: not yet selected.
+- Database: SQLite for the modular-monolith runtime, with a swappable
+  repository seam. Signals, ledger events, provider state, and source-item
+  deduplication are durable across browser sessions.
 - Modular monolith initially.
 - Containerization for reproducibility.
 
 Keep ingestion, analysis, persistence, API, and portfolio-policy boundaries distinct.
+
+## Live ingestion runtime
+
+The live path has two execution modes:
+
+1. A manual `POST /live/poll` cycle for explicit demos and troubleshooting.
+2. An optional backend-owned scheduler enabled with
+   `INGESTION_SCHEDULER_ENABLED=true`. The scheduler is independent of the
+   browser and stops cleanly with the FastAPI process.
+
+Provider state is stored in `data/ingestion.db`, including last attempt and
+success times, newest source timestamp, cumulative fetched/analyzed/skipped
+counts, errors, and retry state. Public HTTP requests use bounded retries,
+exponential backoff, and `Retry-After` when providers return rate limits or
+temporary server failures. `GET /live/health` exposes this state for the
+observability screen.
 
 ## NLP Strategy
 Use a hybrid model-driven/deterministic architecture.
