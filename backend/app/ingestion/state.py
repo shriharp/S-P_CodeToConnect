@@ -44,7 +44,8 @@ class IngestionState:
 
     def seen(self, provider: str, external_id: str) -> bool:
         row = self._conn.execute(
-            "SELECT 1 FROM source_items WHERE provider = ? AND external_id = ?",
+            "SELECT 1 FROM source_items WHERE provider = ? AND external_id = ? "
+            "AND status IN ('analyzed', 'complete')",
             (provider, external_id),
         ).fetchone()
         return row is not None

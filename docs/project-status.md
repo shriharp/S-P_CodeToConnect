@@ -63,6 +63,14 @@ deferred**, with files touched and tests run recorded on completion.
       Files: `backend/app/ingestion/queue.py`, `live_poller.py`,
       `app/api/main.py`. Tests: `tests/test_ingestion_queue.py`.
 
+- [x] **P0.9 Live update stream.** DONE 2026-10-11. Added an in-process SSE
+      hub and `GET /live/events`; completed manual and scheduled polls publish
+      canonical signal summaries. Signals view subscribes with automatic
+      EventSource reconnect and retains REST polling as a fallback. No external
+      broker is required for the single-process hackathon deployment.
+      Files: `backend/app/ingestion/events.py`, `app/api/main.py`,
+      `frontend/src/views/Signals.jsx`. Tests: `tests/test_live_events.py`.
+
 ## Approved Scope — P1 (high-value dashboard)
 
 - [x] **P1.1 Sector Exposure Heatmap.** DONE 2026-10-10. Aggregates the 10

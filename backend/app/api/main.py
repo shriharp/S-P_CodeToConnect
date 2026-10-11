@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.core.signal_contract import RiskSignal, SourceType
@@ -9,6 +10,7 @@ from app.ingestion.adapters import normalize_item
 from app.ingestion.scheduler import IngestionScheduler
 from app.ingestion.state import IngestionState
 from app.ingestion.queue import RawItemQueue
+from app.ingestion.events import hub
 from app.nlp.pipeline import analyze, analyze_item
 from app.portfolio.demo import demo_portfolio, demo_signal
 from app.portfolio.rebalancer import RebalanceResult, rebalance
@@ -83,6 +85,26 @@ def _run_scheduled_poll() -> None:
     event = out["decision_event"]
     event_id = f"scheduled-{out['polled_at'].replace(':', '').replace('.', '')}"
     get_ledger().append(event_from_result(event, event_id, datetime.fromisoformat(out["polled_at"])))
+    hub.publish("poll", _live_event_payload(out, event_id, event))
+
+
+def _live_event_payload(out: dict, event_id: str, event: RebalanceResult) -> dict:
+    return {
+        "event_id": event_id,
+        "polled_at": out["polled_at"],
+        "signals": [signal.model_dump(mode="json") for signal in out["signals"]],
+        "source_counts": out.get("source_counts"),
+        "source_errors": out.get("source_errors", {}),
+        "skipped_seen": out.get("skipped_seen", 0),
+        "decision_event": {
+            "consumed_signal_ids": event.consumed_signal_ids,
+            "decisions": [
+                {"signal_id": decision.signal_id, "ticker": decision.ticker,
+                 "decision": decision.decision, "reason": decision.reason}
+                for decision in event.decisions
+            ],
+        },
+    }
 
 
 @app.on_event("startup")
@@ -130,6 +152,20 @@ def live_health(state: IngestionState = Depends(get_ingestion_state)) -> dict:
         "providers": state.health(),
         "queue": get_raw_queue().counts(),
     }
+
+
+@app.get("/live/events")
+async def live_events() -> StreamingResponse:
+    async def stream():
+        yield ": connected\n\n"
+        async for event in hub.subscribe():
+            yield event.encode()
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )
 
 
 @app.post("/analyze", response_model=RiskSignal)
@@ -566,6 +602,7 @@ def live_poll(
     )
     event_id = f"live-{out['polled_at'].replace(':', '').replace('.', '')}"
     ledger.append(event_from_result(event, event_id, datetime.fromisoformat(out["polled_at"])))
+    hub.publish("poll", _live_event_payload(out, event_id, event))
 
     out["signals"] = [s.model_dump() for s in out["signals"]]
     out["event_id"] = event_id

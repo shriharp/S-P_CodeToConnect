@@ -113,9 +113,26 @@ export default function Signals({ demoMode = false }) {
     }
     const t = setInterval(load, 10000) // poll for new signals
     const liveRefresh = demoMode ? null : setInterval(poll, 90000)
+    let events
+    if (!demoMode) {
+      events = new EventSource('/api/live/events')
+      events.addEventListener('poll', (event) => {
+        try {
+          const update = JSON.parse(event.data)
+          setPollResult(update)
+          load()
+        } catch {
+          setError('Received an invalid live-ingestion update.')
+        }
+      })
+      events.onerror = () => {
+        // EventSource reconnects automatically; REST refresh remains the fallback.
+      }
+    }
     return () => {
       clearInterval(t)
       if (liveRefresh) clearInterval(liveRefresh)
+      if (events) events.close()
     }
   }, [demoMode])
 
