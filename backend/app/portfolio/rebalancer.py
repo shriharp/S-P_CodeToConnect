@@ -17,6 +17,7 @@ from app.core.signal_contract import (
     QualityFlag,
     RiskSignal,
 )
+from app.portfolio.aggregation import group_related_signals
 
 MAX_WEIGHT = 0.25
 DEFAULT_STEP = 0.02
@@ -109,7 +110,14 @@ def rebalance(
     skipped: list[dict[str, str]] = []
     decisions: list[DecisionRecord] = []
 
-    for signal in signals:
+    for group in group_related_signals(signals):
+        signal = group[0]
+        sentiment = (
+            sum(s.sentiment_score for s in group if s.sentiment_score is not None)
+            / len([s for s in group if s.sentiment_score is not None])
+            if any(s.sentiment_score is not None for s in group)
+            else None
+        )
         reason = _skip_reason(signal, now, consumed_events)
         ticker = signal.ticker
         original_weight = weights.get(ticker) if ticker else None
@@ -118,41 +126,47 @@ def rebalance(
             reason = "not_in_portfolio"
 
         if reason is not None:
-            skipped.append({"signal_id": signal.signal_id, "reason": reason})
-            decisions.append(
-                DecisionRecord(
-                    signal_id=signal.signal_id,
-                    ticker=ticker,
-                    sentiment_score=signal.sentiment_score,
-                    original_weight=original_weight,
-                    proposed_weight=None,
-                    final_weight=None,
-                    decision="skipped",
-                    reason=reason,
+            for grouped_signal in group:
+                skipped.append({"signal_id": grouped_signal.signal_id, "reason": reason})
+                decisions.append(
+                    DecisionRecord(
+                        signal_id=grouped_signal.signal_id,
+                        ticker=grouped_signal.ticker,
+                        sentiment_score=grouped_signal.sentiment_score,
+                        original_weight=original_weight,
+                        proposed_weight=None,
+                        final_weight=None,
+                        decision="skipped",
+                        reason=reason,
+                    )
                 )
-            )
             continue
 
-        delta = step * signal.sentiment_score
+        delta = step * sentiment
         proposed = weights[ticker] + delta
         if proposed < 0:
             proposed = 0.0
         weights[ticker] = proposed
-        consumed.append(signal.signal_id)
+        consumed.extend(s.signal_id for s in group)
         event_key = f"{signal.company_id}:{signal.event_category.value}:{signal.event_summary[:80]}"
         consumed_events.add(event_key)
-        decisions.append(
-            DecisionRecord(
-                signal_id=signal.signal_id,
-                ticker=ticker,
-                sentiment_score=signal.sentiment_score,
-                original_weight=original_weight,
-                proposed_weight=proposed,
-                final_weight=None,  # set after normalization
-                decision="executed",
-                reason=None,
+        for grouped_signal in group:
+            decisions.append(
+                DecisionRecord(
+                    signal_id=grouped_signal.signal_id,
+                    ticker=ticker,
+                    sentiment_score=grouped_signal.sentiment_score,
+                    original_weight=original_weight,
+                    proposed_weight=proposed,
+                    final_weight=None,  # set after normalization
+                    decision="executed",
+                    reason=(
+                        f"aggregated_{len(group)}_related_sources"
+                        if len(group) > 1
+                        else None
+                    ),
+                )
             )
-        )
 
     weights = _bounded_normalize(weights, MAX_WEIGHT)
 

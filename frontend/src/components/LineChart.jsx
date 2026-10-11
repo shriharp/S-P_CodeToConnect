@@ -7,7 +7,7 @@ const PALETTE = [
   '#0891b2', '#8a6100', '#65a30d', '#9333ea', '#565656',
 ]
 
-export default function LineChart({ labels, series, height = 260, yFormat = (v) => v }) {
+export default function LineChart({ labels, series, height = 260, yFormat = (v) => v, activeIndex = null }) {
   if (!labels || labels.length === 0 || !series || series.length === 0) {
     return <p className="muted">No data yet.</p>
   }
@@ -56,6 +56,13 @@ export default function LineChart({ labels, series, height = 260, yFormat = (v) 
         const color = PALETTE[si % PALETTE.length]
         return <polyline key={s.name} points={pts} fill="none" stroke={color} strokeWidth="1.5" />
       })}
+      {activeIndex != null && activeIndex >= 0 && activeIndex < labels.length && (
+        <line
+          x1={x(activeIndex)} x2={x(activeIndex)}
+          y1={pad.top} y2={pad.top + ih}
+          stroke="#d6002a" strokeDasharray="3 3"
+        />
+      )}
       {/* legend */}
       {series.map((s, si) => (
         <g key={s.name} transform={`translate(${width - pad.right + 6}, ${pad.top + si * 14})`}>

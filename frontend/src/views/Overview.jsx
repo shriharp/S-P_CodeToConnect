@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import LineChart from '../components/LineChart.jsx'
-import { getWeightHistory, getPrices, runDemoReplay, getLedger, getSignals } from '../api.js'
+import { getWeightHistory, getPrices, getLedger, getSignals } from '../api.js'
 
 // Overview / Command Center: portfolio KPIs, the Weight Evolution Timeline,
 // and a horizontal scrubber to step through rebalance events. Dragging the
@@ -11,15 +11,14 @@ export default function Overview() {
   const [prices, setPrices] = useState({})
   const [steps, setSteps] = useState([]) // ledger events + causes, oldest first
   const [error, setError] = useState(null)
-  const [running, setRunning] = useState(false)
-  const [selected, setSelected] = useState('AAPL')
+  const [selected, setSelected] = useState(['AAPL'])
   const [activeIdx, setActiveIdx] = useState(0)
 
   const load = async () => {
     try {
       const [h, p, led, sigs] = await Promise.all([
         getWeightHistory(),
-        getPrices(selected),
+        getPrices(selected.join(',')),
         getLedger(100),
         getSignals({ limit: 300 }),
       ])
@@ -60,20 +59,6 @@ export default function Overview() {
 
   useEffect(() => { load() }, [selected]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const runReplay = async () => {
-    setRunning(true)
-    setError(null)
-    try {
-      await runDemoReplay()
-      await load()
-      setActiveIdx(0)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setRunning(false)
-    }
-  }
-
   const stepCount = history.length
   const idx = Math.min(activeIdx, Math.max(0, stepCount - 1))
   const activeStep = steps[idx] || null
@@ -88,13 +73,17 @@ export default function Overview() {
   }))
 
   // Price overlay: indexed to 100 at first point so it shares the weight axis.
-  const priceSeries = (() => {
-    const series = prices[selected]
-    if (!series) return []
-    const dates = Object.keys(series).sort()
-    const base = series[dates[0]]
-    return [{ name: `${selected} price (idx)`, values: dates.map((d) => (series[d] / base) * 100) }]
-  })()
+  const priceDates = [...new Set(selected.flatMap((ticker) => Object.keys(prices[ticker] || {})))].sort()
+  const priceSeries = selected.flatMap((ticker) => {
+    const series = prices[ticker]
+    if (!series || !priceDates.length) return []
+    const first = Object.values(series)[0]
+    if (!first) return []
+    return [{
+      name: `${ticker} price (idx)`,
+      values: priceDates.map((date) => (series[date] == null ? null : (series[date] / first) * 100)),
+    }]
+  })
 
   const topWeights = activeHistory
     ? Object.entries(activeHistory.weights).sort((a, b) => b[1] - a[1]).slice(0, 3)
@@ -115,9 +104,6 @@ export default function Overview() {
               {stepCount} rebalance event(s) · proposed mock weights, not executed holdings
             </div>
           </div>
-          <button className="action" onClick={runReplay} disabled={running}>
-            {running ? 'Replaying…' : 'Run demo replay'}
-          </button>
         </div>
         {error && <div className="error">{error}</div>}
 
@@ -140,7 +126,7 @@ export default function Overview() {
               </div>
             </div>
 
-            <LineChart labels={labels} series={weightSeries} yFormat={(v) => `${v.toFixed(0)}%`} />
+            <LineChart labels={labels} series={weightSeries} activeIndex={idx} yFormat={(v) => `${v.toFixed(0)}%`} />
 
             {/* Horizontal scrubber through rebalance events. */}
             <div className="scrubber">
@@ -205,13 +191,23 @@ export default function Overview() {
                 sentiment-driven targets, not market drift.
               </div>
             </div>
-            <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-              {tickers.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <div className="ticker-picker" role="group" aria-label="Select price series">
+              {tickers.map((ticker) => (
+                <button
+                  key={ticker}
+                  className={`ticker-chip ${selected.includes(ticker) ? 'active' : ''}`}
+                  onClick={() => setSelected((current) => current.includes(ticker)
+                    ? (current.length === 1 ? current : current.filter((t) => t !== ticker))
+                    : [...current, ticker])}
+                >
+                  {ticker}
+                </button>
+              ))}
+            </div>
           </div>
           {priceSeries.length > 0 && (
             <LineChart
-              labels={Object.keys(prices[selected] || {}).sort().map((d) => d.slice(5))}
+              labels={priceDates.map((d) => d.slice(5))}
               series={priceSeries}
               height={150}
             />

@@ -53,7 +53,7 @@ export default function Portfolio() {
       delta: (sectorNow[sec] || 0) - (sectorStart[sec] || 0),
     }))
     .sort((a, b) => b.now - a.now)
-  const maxNow = Math.max(...sectorRows.map((r) => r.now), 0.01)
+  const maxDelta = Math.max(...sectorRows.map((r) => Math.abs(r.delta)), 0.01)
 
   // Ledger is newest-first; paginate it.
   const { slice: ledgerPage, page, setPage, total, pageSize } = usePagination(ledger, LEDGER_PAGE_SIZE)
@@ -118,8 +118,10 @@ export default function Portfolio() {
                       {r.delta > 1e-6 ? '+' : ''}{(r.delta * 100).toFixed(2)} pp
                     </td>
                     <td style={{ width: '35%' }}>
-                      <div className="bar">
-                        <div style={{ width: `${(r.now / maxNow) * 100}%`, opacity: 0.45 + 0.55 * (r.now / maxNow) }} />
+                      <div className="diverging-bar" aria-label={`${r.sector} exposure change ${(r.delta * 100).toFixed(2)} percentage points`}>
+                        <div className="diverging-zero" />
+                        {r.delta < 0 && <div className="diverging-fill diverging-negative" style={{ width: `${(Math.abs(r.delta) / maxDelta) * 50}%` }} />}
+                        {r.delta > 0 && <div className="diverging-fill diverging-positive" style={{ width: `${(r.delta / maxDelta) * 50}%` }} />}
                       </div>
                     </td>
                   </tr>

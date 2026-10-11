@@ -35,3 +35,14 @@ def test_explicit_append_is_the_only_persistence():
     store = InMemoryRebalanceStore()
     store.append(event_from_result(_result(), "ev1", NOW))
     assert len(store.list_events()) == 1
+
+
+def test_related_signals_are_aggregated_into_one_policy_adjustment():
+    first = demo_signal("AAPL", -1.0, "first report", "source-1", NOW)
+    second = demo_signal("AAPL", -1.0, "second report", "source-2", NOW)
+    result = rebalance(demo_portfolio(), [first, second], NOW)
+
+    # Two related reports contribute one step, while both IDs remain audited.
+    assert result.consumed_signal_ids == ["source-1-AAPL", "source-2-AAPL"]
+    assert result.adjustments["AAPL"] < 0
+    assert all(d.reason == "aggregated_2_related_sources" for d in result.decisions)

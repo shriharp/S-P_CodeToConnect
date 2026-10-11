@@ -130,6 +130,10 @@ textarea, input[type='text'] {
 }
 textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 select { font: inherit; padding: 0.4rem 0.6rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
+.ticker-picker { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; max-width: 520px; }
+.ticker-chip { padding: 0.35rem 0.6rem; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); font-size: 0.78rem; }
+.ticker-chip:hover { border-color: var(--accent); color: var(--accent-dark); }
+.ticker-chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 600; }
 .controls { display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; margin: 0.5rem 0; }
 .controls label { font-size: 0.85rem; color: var(--text-muted); }
 
@@ -159,6 +163,11 @@ tr.clickable:hover { background: var(--surface-2); }
 /* ---- Bars ---- */
 .bar { background: var(--surface-2); border-radius: 4px; height: 8px; overflow: hidden; min-width: 60px; }
 .bar > div { background: var(--accent); height: 100%; }
+.diverging-bar { position: relative; height: 12px; min-width: 110px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.diverging-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border-strong); z-index: 2; }
+.diverging-fill { position: absolute; top: 2px; height: 8px; border-radius: 3px; }
+.diverging-negative { right: 50%; background: var(--neg); }
+.diverging-positive { left: 50%; background: var(--pos); }
 
 /* ---- Evidence excerpts ---- */
 .excerpt { background: var(--surface-2); border-left: 3px solid var(--border-strong); padding: 0.35rem 0.65rem; margin: 0.35rem 0; font-size: 0.83rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }

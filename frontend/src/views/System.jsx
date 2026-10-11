@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignalsCount, getLedger, getWeightHistory } from '../api.js'
+import { getSignalsCount, getLedger, getWeightHistory, getBenchmark } from '../api.js'
 
 // System / Observability (lightweight): ingestion counts, provenance breakdown,
 // replay + reproducibility info, backend status. No heavy monitoring infra.
@@ -119,6 +119,70 @@ export default function System() {
           demo doesn't depend on current news. Market prices are committed CSVs fetched from yfinance.
         </p>
       </div>
+
+      <BenchmarkPanel />
+    </div>
+  )
+}
+
+function BenchmarkPanel() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = async (refresh = false) => {
+    setLoading(true)
+    setError(null)
+    try {
+      setData(await getBenchmark(refresh))
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+  const classes = ['-1', '0', '1']
+  const labels = { '-1': 'neg', '0': 'neu', '1': 'pos' }
+
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <div>
+          <h3>Model Evaluation</h3>
+          <div className="sub">Operational benchmark, kept with observability rather than strategy controls.</div>
+        </div>
+        <button className="ghost" onClick={() => load(true)} disabled={loading}>{loading ? 'Running…' : 'Re-run'}</button>
+      </div>
+      {error && <div className="error">{error}</div>}
+      {!data && !error && <p className="muted">Loading benchmark…</p>}
+      {data && (
+        <>
+          <p className="muted">{data.methodology} Sample: {data.sample_size} fixtures · {data.hardware}.</p>
+          <div className="grid-2">
+            {['lexicon', 'model'].map((name) => {
+              const backend = data[name]
+              return (
+                <div key={name}>
+                  <h4>{name}</h4>
+                  {backend ? (
+                    <table>
+                      <tbody>
+                        <tr><th>Accuracy</th><td>{backend.accuracy == null ? '—' : `${(backend.accuracy * 100).toFixed(1)}%`}</td></tr>
+                        <tr><th>Scored</th><td>{backend.scored} / {backend.total}</td></tr>
+                        <tr><th>Abstentions</th><td>{backend.abstain}</td></tr>
+                        <tr><th>Latency</th><td>{backend.latency_ms_per_item} ms/item</td></tr>
+                      </tbody>
+                    </table>
+                  ) : <p className="muted">{data.model_unavailable_reason || 'unavailable'}</p>}
+                  {backend && <p className="muted">Recall: {classes.map((key) => `${labels[key]} ${backend.per_class_recall[key] == null ? 'n/a' : `${(backend.per_class_recall[key] * 100).toFixed(0)}%`}`).join(' · ')}</p>}
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

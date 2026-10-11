@@ -146,5 +146,7 @@ Do not represent replayed outputs as fresh inference.
 Report actual measurements, limitations, and failures.
 Do not claim low-resource compatibility without testing.
 
-The lexicon backend remains the default (no model download at runtime); the
-model backend is opt-in per request via `sentiment_backend: "model"`.
+The live ingestion and simulation paths request the model backend by default;
+they fall back to lexicon scoring when the optional model dependencies or
+checkpoint are unavailable. The lexicon backend remains selectable explicitly
+via `sentiment_backend: "lexicon"`.

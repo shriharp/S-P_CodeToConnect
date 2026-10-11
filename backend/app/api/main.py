@@ -231,6 +231,13 @@ class RebalanceRequest(BaseModel):
     items: list[RebalanceItem] = Field(min_length=1)
 
 
+class SimulateTextRequest(BaseModel):
+    text: str = Field(min_length=1)
+    source_item_id: str = Field(min_length=1)
+    source_type: SourceType = SourceType.news
+    provenance: str = "live"
+
+
 @app.post("/rebalance", response_model=RebalanceResult)
 def rebalance_portfolio(
     req: RebalanceRequest, ledger: RebalanceStore = Depends(get_ledger)
@@ -277,6 +284,36 @@ def simulate(req: RebalanceRequest) -> RebalanceResult:
         for item in req.items
     ]
     return rebalance(demo_portfolio(), signals, now)
+
+
+@app.post("/simulate-text")
+def simulate_text(req: SimulateTextRequest) -> dict:
+    """Analyze text and immediately run a non-persistent counterfactual.
+
+    This keeps article interpretation and portfolio what-if analysis in one
+    workflow without saving ad-hoc input to the live signal feed or ledger.
+    """
+    if req.provenance not in ("live", "replay", "synthetic"):
+        raise HTTPException(status_code=422, detail="invalid provenance")
+    item = normalize_item(
+        req.source_type,
+        {"id": req.source_item_id, "text": req.text, "provider": "strategy-lab"},
+    )
+    signals = analyze_item(item, provenance=req.provenance)
+    now = datetime.now(timezone.utc)
+    eligible = [
+        demo_signal(
+            ticker=s.ticker,
+            sentiment=s.sentiment_score,
+            text=s.event_summary,
+            source_item_id=s.source_item_id,
+            ingested_at=now,
+        )
+        for s in signals
+        if s.ticker and s.sentiment_score not in (None, 0)
+    ]
+    result = rebalance(demo_portfolio(), eligible, now)
+    return {"signals": [s.model_dump() for s in signals], "result": result}
 
 
 @app.get("/ledger", response_model=list[dict])

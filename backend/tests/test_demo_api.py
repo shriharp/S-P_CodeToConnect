@@ -30,6 +30,22 @@ def test_market_sectors_shape():
     assert {"company_id", "sector", "market_cap"} <= set(data["AAPL"].keys())
 
 
+def test_simulate_text_analyzes_without_persisting():
+    before = client.get("/signals/count").json()["count"]
+    r = client.post(
+        "/simulate-text",
+        json={
+            "text": "Apple cut revenue guidance after a factory shutdown.",
+            "source_item_id": "what-if-test",
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert any(signal["ticker"] == "AAPL" for signal in data["signals"])
+    assert "proposed_weights" in data["result"]
+    assert client.get("/signals/count").json()["count"] == before
+
+
 def test_demo_replay_shape_and_normalization():
     r = client.post("/demo/replay")
     assert r.status_code == 200

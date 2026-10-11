@@ -91,10 +91,14 @@ deferred**, with files touched and tests run recorded on completion.
 - [ ] **P2.1 Historical Replay & Counterfactual Lab.** Build on replay; replay
       historical signals through the real rebalancer; counterfactual reruns with
       modified/excluded inputs; reuse simulator infra; deterministic + labeled.
-- [ ] **P2.2 Portfolio-wide Signal Aggregation.** Group related items; avoid
-      redundant rebalances from duplicate/near-duplicate reports; preserve source
-      evidence + signal lineage; never silently merge independent/contradictory
-      evidence.
+- [x] **P2.2 Portfolio-wide Signal Aggregation.** DONE 2026-10-11. Related
+      same-company/same-event/same-direction signals are aggregated at the
+      Module A policy boundary into one consensus adjustment; contradictory
+      directions and independent event categories remain separate. Every source
+      signal ID remains in the decision ledger.
+      `backend/app/portfolio/aggregation.py`,
+      `backend/app/portfolio/rebalancer.py`. Tests: aggregation invariant in
+      `tests/test_simulate.py`.
 - [ ] **P2.3 Additional Portfolio Constraints.** Prioritize turnover limits +
       funding explanations; defer min-weight, cash policy, sector caps unless
       time allows. Any policy change documented in AGENTS.md + tested.
@@ -113,9 +117,9 @@ deferred**, with files touched and tests run recorded on completion.
 - **Tab 3 — Portfolio / Financial Intelligence:** current holdings, Decision
   Ledger, Sector Exposure Heatmap, Performance & Benchmarking, turnover +
   drawdown, counterfactual comparisons (where implemented).
-- **Tab 4 — Strategy Lab / Experimentation:** Unified What-If / Policy Simulator,
-  Historical Event Replay, Model vs Lexicon, counterfactual experimentation.
-  Deferred features shown only if clearly labeled unavailable, else omitted.
+- **Tab 4 — Strategy Lab / Experimentation:** Unified text-to-What-If / Policy
+  Simulator and counterfactual experimentation. Historical replay remains
+  deferred. Model evaluation is kept under System / Observability.
 - **Tab 5 — System / Observability (lightweight):** ingestion status/counts,
   source provenance, measured processing latency, data quality/failures, replay +
   reproducibility info, backend status. No heavy monitoring infra.
@@ -163,9 +167,9 @@ Preserve every existing AGENTS.md invariant unless explicitly changed:
    walkthrough.
 3. **Phase 3 — Portfolio intelligence:** Sector Heatmap; Unified Simulator; Market
    Risk Overview; Performance & Benchmarking (subject to data validity).
-4. **Phase 4 — Evaluation & polish:** Model vs Lexicon improvements; Replay /
+4. **Phase 4 — Evaluation & polish:** Model vs Lexicon reporting; Replay /
    Counterfactual UI; turnover + transaction-cost reporting; lightweight System
-   tab; optional aggregation + extra policy constraints.
+   tab; aggregation + extra policy constraints.
 5. **Phase 5 — Final validation:** end-to-end + regression tests; reproducible demo
    verification; docs + README; confirm the demo runs in 5 minutes.
 
@@ -175,8 +179,9 @@ Preserve every existing AGENTS.md invariant unless explicitly changed:
   evidence-membership, timestamp ordering, quality-flag consistency.
   `backend/app/core/signal_contract.py`
 - Two operational source types (news + social). `backend/app/ingestion/adapters.py`
-- Sentiment Score [-1, 1]: lexicon (default) + opt-in DistilRoBERTa financial
-  model (Apache-2.0; 13/15 vs lexicon 8/15; 27 ms/item; 419 MB peak RSS).
+- Sentiment Score [-1, 1]: DistilRoBERTa financial model by default on live
+  ingestion/simulation, with explicit lexicon selection and graceful fallback
+  (Apache-2.0; 13/15 vs lexicon 8/15; 27 ms/item; 419 MB peak RSS).
   `docs/model-evaluation.md`
 - Event Classification: full taxonomy. `backend/app/nlp/events.py`
 - Impact Score [1-10]: deterministic rubric with abstention-to-null.
