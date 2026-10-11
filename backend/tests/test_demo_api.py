@@ -89,8 +89,20 @@ def test_dashboard_scopes_keep_demo_rows_out_of_live_view():
     assert all(signal["source_provider"] not in {"strategy-lab", "test"} for signal in live_signals)
 
 
-def test_weight_history_excludes_no_change_events():
+def test_weight_history_retains_scoped_events_for_timeline():
     response = client.get("/portfolio/weight-history", params={"dashboard": "demo"})
     assert response.status_code == 200
     for row in response.json():
         assert row["weights"]
+
+
+def test_live_provider_inspection_is_paginated_and_searchable():
+    response = client.get(
+        "/live/providers/reddit%3Ar%2Fstocks/items",
+        params={"search": "does-not-exist", "limit": 10, "offset": 0},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provider"] == "reddit:r/stocks"
+    assert data["items"] == []
+    assert {"source_items", "total", "limit", "offset"} <= set(data)

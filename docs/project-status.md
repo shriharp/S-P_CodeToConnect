@@ -1,6 +1,6 @@
 # Project Status
 
-Last verified: 2026-10-11, against the repository and a passing test run (123 tests).
+Last verified: 2026-10-11, against the repository and a passing test run (138 tests).
 
 Baseline: the AI/NLP Risk Engine and Module A are functionally complete and
 exceed the core technical bar. Work is now the approved dashboard/infrastructure
@@ -361,3 +361,34 @@ integration + `/data`, with tests for portfolio invariants and ledger correctnes
 - Suppressed skipped decisions in weight-change explanations while retaining
   them in the audit ledger.
 - Added hover highlighting and stock selection controls to the weight timeline.
+
+## P0.14 Ingestion source inspection and timeline controls
+
+- Added paginated, searchable `GET /live/providers/{provider}/items` inspection
+  for durable raw queue records and retained source-item metadata.
+- Made System provider rows clickable and exposed raw payloads, queue status,
+  attempts, timestamps, and retained errors without starting a new fetch.
+- Clarified partial provider success when fetched records exist but one feed
+  member fails; historical fetched rows no longer claim that no fetch succeeded.
+- Added explicit manual-mode wording and a direct System navigation action in
+  the global ingestion runtime rail.
+- Added Clear all and removable ticker controls to both Overview charts. Demo
+  weight history retains no-op replay steps; live history continues to focus on
+  actual allocation changes.
+- Validation: full backend suite (138 passed), frontend production build, and
+  `git diff --check`.
+
+## P0.15 Scoped portfolio and complete timeline controls
+
+- Added Select all controls alongside Clear all for both Overview plots.
+- Live weight history now retains every scoped live rebalance event, including
+  no-op events caused by unknown or policy-skipped signals, so ingestion
+  activity is visible beyond the previous four movement steps.
+- Portfolio now requests the active live/demo scope for ledger, weight history,
+  and performance instead of mixing both modes through unscoped `all` data.
+- Manual-mode copy now states that browser-triggered polling is the fallback;
+  Signals refreshes live data periodically while mounted, and the Poll live
+  sources button triggers an immediate cycle. Backend scheduler mode remains
+  independent of the browser.
+- Validation: full backend suite (138 passed), frontend production build, and
+  `git diff --check`.

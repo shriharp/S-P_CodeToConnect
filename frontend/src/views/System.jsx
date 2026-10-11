@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignalsCount, getLedger, getWeightHistory, getBenchmark, getLiveHealth } from '../api.js'
+import { getSignalsCount, getLedger, getWeightHistory, getBenchmark, getLiveHealth, getLiveProviderItems } from '../api.js'
 
 // System / Observability (lightweight): ingestion counts, provenance breakdown,
 // replay + reproducibility info, backend status. No heavy monitoring infra.
@@ -9,6 +9,10 @@ export default function System() {
   const [history, setHistory] = useState([])
   const [status, setStatus] = useState('checking')
   const [liveHealth, setLiveHealth] = useState(null)
+  const [providerDetail, setProviderDetail] = useState(null)
+  const [providerSearch, setProviderSearch] = useState('')
+  const [providerPage, setProviderPage] = useState(0)
+  const [providerLoading, setProviderLoading] = useState(false)
 
   useEffect(() => {
     const loadHealth = async () => {
@@ -32,6 +36,19 @@ export default function System() {
     const timer = setInterval(loadHealth, 15000)
     return () => clearInterval(timer)
   }, [])
+
+  const inspectProvider = async (provider, page = 0, search = providerSearch) => {
+    setProviderLoading(true)
+    try {
+      const detail = await getLiveProviderItems(provider, { search, limit: 10, offset: page * 10 })
+      setProviderDetail(detail)
+      setProviderPage(page)
+    } catch (error) {
+      setProviderDetail({ provider, error: error.message, items: [], source_items: [] })
+    } finally {
+      setProviderLoading(false)
+    }
+  }
 
   const decisionCounts = ledger.reduce((acc, ev) => {
     ev.decisions.forEach((d) => {
@@ -142,9 +159,9 @@ export default function System() {
             <thead><tr><th>Provider</th><th>Schedule</th><th>Last success</th><th>Newest source</th><th>Cursor</th><th className="num">Fetched</th><th className="num">Analyzed</th><th className="num">Skipped</th><th className="num">Errors</th></tr></thead>
             <tbody>{liveHealth.providers.map((p) => (
               <tr key={p.provider}>
-                <td>{p.provider}</td>
+                <td><button className="table-link" onClick={() => inspectProvider(p.provider)}>{p.provider}</button></td>
                 <td className="muted">{p.interval_seconds}s</td>
-                <td className="muted">{p.last_success_at ? new Date(p.last_success_at).toLocaleString() : 'No successful fetch yet'}</td>
+                <td className="muted">{p.last_success_at ? new Date(p.last_success_at).toLocaleString() : p.fetched_count > 0 ? 'Partial success (time unavailable)' : 'No successful fetch recorded'}</td>
                 <td className="muted">{p.newest_source_at ? new Date(p.newest_source_at).toLocaleString() : 'n/a'}</td>
                 <td className="mono" title={p.cursor || ''}>{p.cursor ? `${p.cursor.slice(0, 18)}…` : 'n/a'}</td>
                 <td className="num">{p.fetched_count}</td>
@@ -155,6 +172,54 @@ export default function System() {
             ))}</tbody>
           </table>
         ) : <p className="muted">No provider health data yet.</p>}
+        {providerDetail && (
+          <div className="provider-detail">
+            <div className="panel-head">
+              <div>
+                <h4>{providerDetail.provider} records</h4>
+                <div className="sub">Persisted raw payloads, queue status, and retained fetch errors. Inspection does not trigger another fetch.</div>
+              </div>
+              <button className="ghost" onClick={() => setProviderDetail(null)}>Close</button>
+            </div>
+            <div className="controls">
+              <input
+                type="text"
+                value={providerSearch}
+                placeholder="Search id, payload, or error"
+                onChange={(event) => setProviderSearch(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && inspectProvider(providerDetail.provider, 0, event.currentTarget.value)}
+              />
+              <button className="ghost" onClick={() => inspectProvider(providerDetail.provider, 0)}>Search</button>
+            </div>
+            {providerDetail.error && <div className="error">{providerDetail.error}</div>}
+            {providerDetail.items?.length ? (
+              <table>
+                <thead><tr><th>External ID</th><th>Queue / analysis</th><th>Attempts</th><th>Queued</th><th>Processed</th><th>Error</th><th>Raw payload</th></tr></thead>
+                <tbody>{providerDetail.items.map((item) => (
+                  <tr key={`${item.provider}-${item.external_id}`}>
+                    <td className="mono">{item.external_id}</td>
+                    <td><span className="dec">{item.status}</span></td>
+                    <td className="num">{item.attempts}</td>
+                    <td className="muted">{new Date(item.queued_at).toLocaleString()}</td>
+                    <td className="muted">{item.processed_at ? new Date(item.processed_at).toLocaleString() : 'pending'}</td>
+                    <td className="error-text">{item.last_error || 'none'}</td>
+                    <td>
+                      <details>
+                        <summary>Raw + analysis ({item.analysis?.length ?? 0})</summary>
+                        <pre className="raw-payload">{JSON.stringify({ raw: item.payload, analysis: item.analysis || [] }, null, 2)}</pre>
+                      </details>
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            ) : <p className="muted">No raw queue records match this search. Source-item records: {providerDetail.source_items?.length ?? 0}.</p>}
+            <div className="pagination">
+              <button className="ghost" disabled={providerPage === 0 || providerLoading} onClick={() => inspectProvider(providerDetail.provider, providerPage - 1)}>Previous</button>
+              <span className="muted">Page {providerPage + 1} · {providerDetail.total ?? 0} queued records</span>
+              <button className="ghost" disabled={providerLoading || (providerPage + 1) * 10 >= (providerDetail.total ?? 0)} onClick={() => inspectProvider(providerDetail.provider, providerPage + 1)}>Next</button>
+            </div>
+          </div>
+        )}
         {liveHealth?.queue && (
           <div className="kpis" style={{ marginTop: '1rem' }}>
             <div className="kpi"><div className="kpi-label">Queued</div><div className="kpi-value">{liveHealth.queue.pending ?? 0}</div></div>

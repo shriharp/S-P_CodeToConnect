@@ -97,5 +97,48 @@ class RawItemQueue:
         ).fetchall()
         return {row["status"]: int(row["count"]) for row in rows}
 
+    def list_items(
+        self, provider: str, *, search: str = "", status: str | None = None,
+        limit: int = 25, offset: int = 0
+    ) -> list[dict]:
+        clauses = ["provider = ?"]
+        values: list[object] = [provider]
+        if status:
+            clauses.append("status = ?")
+            values.append(status)
+        if search:
+            clauses.append("(external_id LIKE ? OR payload LIKE ? OR last_error LIKE ?)")
+            pattern = f"%{search}%"
+            values.extend([pattern, pattern, pattern])
+        values.extend([min(limit, 100), max(offset, 0)])
+        rows = self._conn.execute(
+            f"""
+            SELECT rowid, provider, external_id, payload, status, attempts,
+                   queued_at, processed_at, last_error
+            FROM raw_item_queue
+            WHERE {' AND '.join(clauses)}
+            ORDER BY queued_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            values,
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def count_items(self, provider: str, *, search: str = "", status: str | None = None) -> int:
+        clauses = ["provider = ?"]
+        values: list[object] = [provider]
+        if status:
+            clauses.append("status = ?")
+            values.append(status)
+        if search:
+            clauses.append("(external_id LIKE ? OR payload LIKE ? OR last_error LIKE ?)")
+            pattern = f"%{search}%"
+            values.extend([pattern, pattern, pattern])
+        row = self._conn.execute(
+            f"SELECT COUNT(*) AS count FROM raw_item_queue WHERE {' AND '.join(clauses)}",
+            values,
+        ).fetchone()
+        return int(row["count"])
+
     def close(self) -> None:
         self._conn.close()

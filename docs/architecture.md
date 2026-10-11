@@ -73,9 +73,16 @@ and does not mean that NLP returned an unknown event. These attributable live
 submissions remain visible in live mode, while Strategy Lab and test providers
 are excluded by scope.
 
-The weight-evolution history excludes ledger events whose normalized final
-weights equal their original weights. Skipped policy-gated signals remain
-auditable in the ledger, but are not rendered as weight-change causes.
+System source-health rows are clickable. The provider inspection endpoint
+returns paginated queue records, normalized raw payloads, queue attempts and
+errors, plus any persisted NLP signals matched by provider and source-item
+identifier. Inspection is read-only and does not trigger a fetch.
+
+The weight-evolution history retains scoped ledger events, including no-op
+events, so live ingestion activity remains visible even when signals are
+unknown or skipped by policy. The Overview cause panel still renders only
+actual weight changes and labels no-op steps explicitly. Skipped policy-gated
+signals remain auditable in the ledger.
 
 ## NLP Strategy
 Use a hybrid model-driven/deterministic architecture.

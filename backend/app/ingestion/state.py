@@ -152,5 +152,21 @@ class IngestionState:
         rows = self._conn.execute("SELECT * FROM provider_state ORDER BY provider").fetchall()
         return [dict(row) for row in rows]
 
+    def list_source_items(
+        self, provider: str, *, search: str = "", limit: int = 25, offset: int = 0
+    ) -> list[dict]:
+        pattern = f"%{search}%"
+        rows = self._conn.execute(
+            """
+            SELECT provider, external_id, published_at, first_seen_at,
+                   last_seen_at, status
+            FROM source_items
+            WHERE provider = ? AND (external_id LIKE ? OR status LIKE ?)
+            ORDER BY last_seen_at DESC LIMIT ? OFFSET ?
+            """,
+            (provider, pattern, pattern, min(limit, 100), max(offset, 0)),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def close(self) -> None:
         self._conn.close()

@@ -155,6 +155,43 @@ def live_health(state: IngestionState = Depends(get_ingestion_state)) -> dict:
     }
 
 
+@app.get("/live/providers/{provider:path}/items")
+def live_provider_items(
+    provider: str,
+    search: str = "",
+    status: str | None = None,
+    limit: int = 25,
+    offset: int = 0,
+    state: IngestionState = Depends(get_ingestion_state),
+    queue: RawItemQueue = Depends(get_raw_queue),
+    store: SignalStore = Depends(get_store),
+) -> dict:
+    """Inspect durable source and raw-queue records for one provider."""
+    queue_items = queue.list_items(
+        provider, search=search, status=status, limit=limit, offset=offset
+    )
+    for item in queue_items:
+        import json
+        item["payload"] = json.loads(item["payload"])
+        item["analysis"] = [
+            signal.model_dump()
+            for signal in store.list(limit=500)
+            if signal.source_provider == provider
+            and signal.source_item_id == item["external_id"]
+        ]
+    source_items = state.list_source_items(
+        provider, search=search, limit=limit, offset=offset
+    )
+    return {
+        "provider": provider,
+        "items": queue_items,
+        "source_items": source_items,
+        "total": queue.count_items(provider, search=search, status=status),
+        "limit": min(limit, 100),
+        "offset": max(offset, 0),
+    }
+
+
 @app.get("/live/events")
 async def live_events() -> StreamingResponse:
     async def stream():
@@ -477,16 +514,14 @@ def weight_history(
             "weights": event["final_weights"],
         }
         for event in reversed(events)
-        if any(
-            abs(event["final_weights"].get(ticker, 0) - event["original_weights"].get(ticker, 0))
-            > 1e-9
-            for ticker in set(event["final_weights"]) | set(event["original_weights"])
-        )
     ]
 
 
 @app.get("/portfolio/performance")
-def portfolio_performance(ledger: RebalanceStore = Depends(get_ledger)) -> dict:
+def portfolio_performance(
+    dashboard: str = "all",
+    ledger: RebalanceStore = Depends(get_ledger),
+) -> dict:
     """Descriptive performance metrics vs equal-weight / buy-and-hold baselines.
 
     Strictly descriptive (not a predictive backtest) — computed from real price
@@ -494,7 +529,7 @@ def portfolio_performance(ledger: RebalanceStore = Depends(get_ledger)) -> dict:
     """
     from app.portfolio.performance import compute_performance
 
-    return compute_performance(ledger.weight_history())
+    return compute_performance(weight_history(dashboard=dashboard, ledger=ledger))
 
 
 @app.get("/benchmark/sentiment")
@@ -654,7 +689,7 @@ def live_poll(
         state.update_provider(
             provider,
             attempted=True,
-            success=provider_error is None,
+            success=provider_error is None or fetched.get(key, 0) > 0,
             fetched=fetched.get(key, 0),
             analyzed=analyzed.get(key, 0),
             skipped=out.get("skipped_seen", 0) if key == "stocktwits" else 0,

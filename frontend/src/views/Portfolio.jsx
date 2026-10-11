@@ -6,7 +6,7 @@ import Pagination, { usePagination } from '../components/Pagination.jsx'
 const pct = (w) => `${(w * 100).toFixed(2)}%`
 const LEDGER_PAGE_SIZE = 4
 
-export default function Portfolio() {
+export default function Portfolio({ demoMode = false }) {
   const [ledger, setLedger] = useState([])
   const [history, setHistory] = useState([])
   const [sectors, setSectors] = useState({})
@@ -17,7 +17,10 @@ export default function Portfolio() {
     ;(async () => {
       try {
         const [l, h, s, p] = await Promise.all([
-          getLedger(200), getWeightHistory(), getSectors(), getPerformance(),
+          getLedger(200, demoMode ? 'demo' : 'live'),
+          getWeightHistory(demoMode ? 'demo' : 'live'),
+          getSectors(),
+          getPerformance(demoMode ? 'demo' : 'live'),
         ])
         setLedger(l)
         setHistory(h)
@@ -27,7 +30,7 @@ export default function Portfolio() {
         setError(e.message)
       }
     })()
-  }, [])
+  }, [demoMode])
 
   const latest = history.length ? history[history.length - 1] : null
   const initial = history.length ? history[0] : null

@@ -38,7 +38,7 @@ export const getSignalsCount = () => get('/signals/count')
 export const getSignalsOverview = (dashboard = 'all') => get(`/signals/overview?dashboard=${dashboard}`)
 export const getLedger = (limit = 100, dashboard = 'all') => get(`/ledger?limit=${limit}&dashboard=${dashboard}`)
 export const getWeightHistory = (dashboard = 'all') => get(`/portfolio/weight-history?dashboard=${dashboard}`)
-export const getPerformance = () => get('/portfolio/performance')
+export const getPerformance = (dashboard = 'all') => get(`/portfolio/performance?dashboard=${dashboard}`)
 export const getBenchmark = (refresh) => get(`/benchmark/sentiment${refresh ? '?refresh=true' : ''}`)
 export const getPrices = (tickers) =>
   get(`/market/prices${tickers ? `?tickers=${tickers}` : ''}`)
@@ -47,3 +47,7 @@ export const runDemoReplay = () => post('/demo/replay', {})
 export const livePoll = (newsQuery) =>
   post(`/live/poll${newsQuery ? `?news_query=${encodeURIComponent(newsQuery)}` : ''}`, {})
 export const getLiveHealth = () => get('/live/health')
+export const getLiveProviderItems = (provider, params = {}) => {
+  const q = new URLSearchParams(params).toString()
+  return get(`/live/providers/${encodeURIComponent(provider)}/items${q ? `?${q}` : ''}`)
+}

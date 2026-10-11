@@ -12,7 +12,7 @@ export default function Overview({ demoMode = false }) {
   const [steps, setSteps] = useState([]) // ledger events + causes, oldest first
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(['AAPL'])
-  const [weightSelected, setWeightSelected] = useState([])
+  const [weightSelected, setWeightSelected] = useState(null)
   const [hoveredWeight, setHoveredWeight] = useState(null)
   const [hoveredPrice, setHoveredPrice] = useState(null)
   const [activeIdx, setActiveIdx] = useState(0)
@@ -27,7 +27,9 @@ export default function Overview({ demoMode = false }) {
       ])
       const uniqueHistory = [...new Map(h.map((event) => [event.event_id, event])).values()]
       setHistory(uniqueHistory)
-      setWeightSelected((current) => current.filter((ticker) => h[0]?.weights?.[ticker] != null))
+      setWeightSelected((current) => current == null
+        ? Object.keys(h[0]?.weights || {})
+        : current.filter((ticker) => h[0]?.weights?.[ticker] != null))
       setPrices(p)
 
       // Join each ledger event's decisions to their source signals so we can
@@ -76,7 +78,7 @@ export default function Overview({ demoMode = false }) {
   // Full trajectory always shown; the scrubber just picks which step to inspect.
   const tickers = history.length ? Object.keys(history[0].weights) : []
   const labels = history.map((h) => h.timestamp.slice(5, 16).replace('T', ' '))
-  const plottedTickers = weightSelected.length ? weightSelected : tickers
+  const plottedTickers = weightSelected || []
   const weightSeries = plottedTickers.map((t) => ({
     name: t,
     values: history.map((h) => (h.weights[t] ?? 0) * 100),
@@ -146,20 +148,22 @@ export default function Overview({ demoMode = false }) {
                 yFormat={(v) => `${v.toFixed(0)}%`}
               />
               <div className="ticker-picker chart-controls" aria-label="Weight timeline stocks">
+                <button className="picker-clear" onClick={() => setWeightSelected([])}>Clear all</button>
+                <button className="picker-clear" onClick={() => setWeightSelected(tickers)}>Select all</button>
                 <span className="muted">Plot stocks</span>
                 {tickers.map((ticker) => (
                   <button
                     key={ticker}
                     className={`ticker-chip ${plottedTickers.includes(ticker) ? 'active' : ''}`}
                     onClick={() => setWeightSelected((current) => {
-                      const active = current.length ? current : tickers
+                      const active = current || []
                       if (active.includes(ticker) && active.length === 1) return active
                       return active.includes(ticker)
                         ? active.filter((item) => item !== ticker)
                         : [...active, ticker]
                     })}
                   >
-                    {ticker}
+                    <><span>{ticker}</span>{plottedTickers.includes(ticker) && <span aria-hidden="true">×</span>}</>
                   </button>
                 ))}
               </div>
@@ -239,6 +243,8 @@ export default function Overview({ demoMode = false }) {
                 onHover={setHoveredPrice}
               />
               <div className="ticker-picker chart-controls" role="group" aria-label="Select price series">
+                <button className="picker-clear" onClick={() => setSelected([])}>Clear all</button>
+                <button className="picker-clear" onClick={() => setSelected(tickers)}>Select all</button>
                 {tickers.map((ticker) => (
                   <button
                     key={ticker}
@@ -247,7 +253,7 @@ export default function Overview({ demoMode = false }) {
                       ? (current.length === 1 ? current : current.filter((t) => t !== ticker))
                       : [...current, ticker])}
                   >
-                    {ticker}
+                    <><span>{ticker}</span>{selected.includes(ticker) && <span aria-hidden="true">×</span>}</>
                   </button>
                 ))}
               </div>

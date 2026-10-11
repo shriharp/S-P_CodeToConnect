@@ -52,7 +52,7 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
         <p className="muted">
           {liveHealth?.scheduler_enabled
             ? 'The backend continues polling independently of this browser tab.'
-            : 'Enable INGESTION_SCHEDULER_ENABLED=true to poll in the backend.'}
+            : 'Manual mode means browser-triggered polling only. Start the backend with INGESTION_SCHEDULER_ENABLED=true for continuous polling independent of this tab.'}
         </p>
         {liveHealth?.providers && (
           <p className="muted" style={{ marginBottom: 0 }}>
@@ -60,6 +60,7 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
             {liveHealth.queue ? ` Queue: ${liveHealth.queue.pending ?? 0} pending.` : ''}
           </p>
         )}
+        <button className="rail-link" onClick={() => setTab('system')}>Open ingestion details</button>
       </section>
 
       <section className="rail-card">
