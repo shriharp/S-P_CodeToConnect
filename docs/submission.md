@@ -1,6 +1,12 @@
 
 # Hackathon Submission
 
+## Product identity
+
+**KAIROS — Signal Over Noise** is the product name used throughout the
+frontend, README, and demo materials. It is the unified AI/NLP financial risk
+engine and mock portfolio rebalancing platform.
+
 ## Deadlines
 - Personal target: October 10, 2026.
 - Official deadline: October 11, 2026.

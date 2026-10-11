@@ -407,3 +407,15 @@ integration + `/data`, with tests for portfolio invariants and ledger correctnes
   labeled reference/baseline view instead.
 - Validation: full backend suite (138 passed), frontend production build, and
   `git diff --check`.
+
+## Product identity
+
+- Product name: **KAIROS**
+- Tagline: **Signal Over Noise**
+- Frontend branding uses the supplied logo from
+  `frontend/public/brand/kairos-logo.svg`.
+
+- Overview and System now share one local-time timestamp formatter; the former
+  raw ISO slicing/UTC display path was removed.
+- The frontend explicitly tells users that timestamps are mapped to their
+  browser's local timezone.

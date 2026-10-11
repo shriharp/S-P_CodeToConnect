@@ -1,4 +1,7 @@
-# AI/NLP Risk Engine - S&P Global & Crisil Campus Hackathon
+# KAIROS - Signal Over Noise
+
+AI/NLP financial risk intelligence and mock portfolio rebalancing for the
+S&P Global & CRISIL Code to Connect hackathon.
 
 **Candidate Name:** Shrihar Pande
 **College Email ID:** shrihar.mitmpl2023@learner.manipal.edu
@@ -10,7 +13,7 @@
 
 Financial risk teams need to turn unstructured text — news headlines and social
 posts — into structured, actionable risk signals, then demonstrate a practical
-use of that intelligence. This project builds a unified AI/NLP Risk Engine that
+use of that intelligence. This project builds KAIROS, a unified AI/NLP Risk Engine that
 does exactly that, and applies it through a tactical mock-index rebalancer
 (Module A).
 

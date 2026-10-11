@@ -27,8 +27,12 @@ export default function App() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <h1>Risk Engine</h1>
-          <div className="tag">NLP signals · mock rebalancing</div>
+          <img className="brand-logo" src="/brand/kairos-logo.svg" alt="KAIROS logo" />
+          <div className="brand-copy">
+            <div className="brand-name">KAIROS</div>
+            <div className="brand-tagline">Signal Over Noise</div>
+          </div>
+          <div className="tag">AI/NLP risk intelligence · mock rebalancing</div>
         </div>
         <nav className="nav">
           {TABS.map((t) => (

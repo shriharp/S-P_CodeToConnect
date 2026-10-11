@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Risk Engine Dashboard - design system
+   KAIROS - Signal Over Noise
    ========================================================================== */
 :root {
   /* S&P Global brand: Monza Red #D6002A, Black #000000, White */
@@ -55,9 +55,12 @@ body {
   display: flex;
   flex-direction: column;
 }
-.brand { padding: 0 0.75rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
-.brand h1 { font-size: 1rem; margin: 0; letter-spacing: -0.01em; }
-.brand .tag { font-size: 0.72rem; color: var(--text-faint); margin-top: 0.15rem; }
+.brand { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.65rem; padding: 0 0.75rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
+.brand-logo { width: 2.15rem; height: 2.15rem; flex: 0 0 auto; }
+.brand-copy { min-width: 0; }
+.brand-name { font-size: 1rem; font-weight: 700; letter-spacing: 0.08em; }
+.brand-tagline { color: var(--accent); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; margin-top: 0.12rem; }
+.brand .tag { flex-basis: 100%; font-size: 0.68rem; color: var(--text-faint); margin-top: -0.1rem; line-height: 1.35; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {

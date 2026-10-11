@@ -64,6 +64,13 @@ export default function ContextRail({ demoMode, setDemoMode, overview, tab, setT
       </section>
 
       <section className="rail-card">
+        <div className="rail-label">Time display</div>
+        <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+          All timestamps are converted to your browser's local timezone.
+        </p>
+      </section>
+
+      <section className="rail-card">
         <div className="rail-label">Signal quality</div>
         <div className="rail-stat">{qualityRate == null ? 'No data' : `${qualityRate}% field completeness`}</div>
         <p className="muted">

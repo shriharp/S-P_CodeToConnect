@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getSignalsCount, getLedger, getWeightHistory, getBenchmark, getLiveHealth, getLiveProviderItems } from '../api.js'
+import { formatLocalTimestamp } from '../time.js'
 
 // System / Observability (lightweight): ingestion counts, provenance breakdown,
 // replay + reproducibility info, backend status. No heavy monitoring infra.
@@ -161,8 +162,8 @@ export default function System() {
               <tr key={p.provider}>
                 <td><button className="table-link" onClick={() => inspectProvider(p.provider)}>{p.provider}</button></td>
                 <td className="muted">{p.interval_seconds}s</td>
-                <td className="muted">{p.last_success_at ? new Date(p.last_success_at).toLocaleString() : p.fetched_count > 0 ? 'Partial success (time unavailable)' : 'No successful fetch recorded'}</td>
-                <td className="muted">{p.newest_source_at ? new Date(p.newest_source_at).toLocaleString() : 'n/a'}</td>
+                <td className="muted">{p.last_success_at ? formatLocalTimestamp(p.last_success_at) : p.fetched_count > 0 ? 'Partial success (time unavailable)' : 'No successful fetch recorded'}</td>
+                <td className="muted">{formatLocalTimestamp(p.newest_source_at)}</td>
                 <td className="mono" title={p.cursor || ''}>{p.cursor ? `${p.cursor.slice(0, 18)}…` : 'n/a'}</td>
                 <td className="num">{p.fetched_count}</td>
                 <td className="num">{p.analyzed_count}</td>
@@ -200,8 +201,8 @@ export default function System() {
                     <td className="mono">{item.external_id}</td>
                     <td><span className="dec">{item.status}</span></td>
                     <td className="num">{item.attempts}</td>
-                    <td className="muted">{new Date(item.queued_at).toLocaleString()}</td>
-                    <td className="muted">{item.processed_at ? new Date(item.processed_at).toLocaleString() : 'pending'}</td>
+                    <td className="muted">{formatLocalTimestamp(item.queued_at)}</td>
+                    <td className="muted">{item.processed_at ? formatLocalTimestamp(item.processed_at) : 'pending'}</td>
                     <td className="error-text">{item.last_error || 'none'}</td>
                     <td>
                       <details>

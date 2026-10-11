@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import LineChart from '../components/LineChart.jsx'
 import { getWeightHistory, getPrices, getLedger, getSignals } from '../api.js'
+import { formatLocalShortTimestamp, formatLocalTimestamp } from '../time.js'
 
 // Overview / Command Center: portfolio KPIs, the Weight Evolution Timeline,
 // and a horizontal scrubber to step through rebalance events. Dragging the
@@ -77,7 +78,7 @@ export default function Overview({ demoMode = false }) {
 
   // Full trajectory always shown; the scrubber just picks which step to inspect.
   const tickers = history.length ? Object.keys(history[0].weights) : []
-  const labels = history.map((h) => h.timestamp.slice(5, 16).replace('T', ' '))
+  const labels = history.map((h) => formatLocalShortTimestamp(h.timestamp))
   const plottedTickers = weightSelected || []
   const weightSeries = plottedTickers.map((t) => ({
     name: t,
@@ -188,17 +189,17 @@ export default function Overview({ demoMode = false }) {
                 </div>
               </div>
               <div className="scrubber-ticks">
-                <span className="scrubber-tick">{history[0].timestamp.slice(5, 10)}</span>
+                <span className="scrubber-tick">{formatLocalShortTimestamp(history[0].timestamp).slice(0, 5)}</span>
                 <span className="scrubber-tick active">
-                  {history[idx].timestamp.slice(0, 16).replace('T', ' ')}
+                  {formatLocalTimestamp(history[idx].timestamp)}
                 </span>
-                <span className="scrubber-tick">{history[stepCount - 1].timestamp.slice(5, 10)}</span>
+                <span className="scrubber-tick">{formatLocalShortTimestamp(history[stepCount - 1].timestamp).slice(0, 5)}</span>
               </div>
             </div>
 
             {/* Show only the active step justification. */}
             <div className="step-detail">
-              <div className="ts">Step {idx + 1} · {activeStep?.timestamp?.slice(0, 16).replace('T', ' ') || history[idx].timestamp.slice(0, 16).replace('T', ' ')}</div>
+              <div className="ts">Step {idx + 1} · {formatLocalTimestamp(activeStep?.timestamp || history[idx].timestamp)}</div>
               {activeStep && activeStep.causes.length > 0 ? (
                 activeStep.causes.filter((c) => c.decision !== 'skipped').map((c) => (
                   <div className="cause" key={c.key}>

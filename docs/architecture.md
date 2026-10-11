@@ -84,6 +84,11 @@ unknown or skipped by policy. The Overview cause panel still renders only
 actual weight changes and labels no-op steps explicitly. Skipped policy-gated
 signals remain auditable in the ledger.
 
+All frontend timestamps are parsed as instants and formatted through one
+shared local-time formatter. Overview charts, scrubber labels, System health,
+and source inspection therefore use the same browser timezone rather than
+mixing raw UTC string slicing with local date formatting.
+
 ## NLP Strategy
 Use a hybrid model-driven/deterministic architecture.
 

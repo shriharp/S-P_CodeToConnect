@@ -2,7 +2,10 @@
 
 The objective of this case study is to design and implement a platform capable of ingesting and analyzing real-time, unstructured data to generate actionable financial risk signals.
 
-The primary deliverable is a unified AI/NLP Risk Engine. This engine will serve as the central processing unit, responsible for parsing text-based data from sources such as news feeds and social media, and converting it into structured output.
+The primary deliverable is KAIROS, a unified AI/NLP Risk Engine with the
+tagline **Signal Over Noise**. KAIROS serves as the central processing unit,
+parsing text-based data from sources such as news feeds and social media and
+converting it into structured output.
 
 Upon completion of the core engine, teams are required to implement at least one of the following downstream modules to demonstrate a practical application of the generated risk intelligence:
 
