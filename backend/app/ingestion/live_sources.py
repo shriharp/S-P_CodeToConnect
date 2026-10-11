@@ -13,6 +13,9 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
+from html import unescape
+import re
 from datetime import datetime, timezone
 
 from app.core.entities import COMPANIES
@@ -21,6 +24,7 @@ from app.ingestion.adapters import RawSourceItem
 
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 STOCKTWITS_URL = "https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json"
+REDDIT_RSS_URL = "https://www.reddit.com/r/stocks/search.rss"
 GDELT_MIN_INTERVAL = 6.0  # seconds between requests (GDELT asks for >=5s; be safe)
 USER_AGENT = "risk-engine-hackathon/0.1 (educational demo)"
 
@@ -126,6 +130,44 @@ def fetch_stocktwits(symbol: str, limit: int = 20, labeled_only: bool = False) -
         )
         # stash crowd label on the pydantic model's private notes
         items[-1].__dict__["crowd_sentiment"] = crowd_label
+    return items
+
+
+def fetch_reddit_rss(query: str, limit: int = 20) -> list[RawSourceItem]:
+    """Fetch public r/stocks search posts through Reddit's RSS endpoint.
+
+    Reddit's JSON API requires an application identity in many environments.
+    RSS is public and keyless, but it carries no authoritative sentiment label;
+    the NLP pipeline must infer sentiment from the retained title/body.
+    """
+    params = urllib.parse.urlencode({"q": query, "restrict_sr": "1", "sort": "new"})
+    req = urllib.request.Request(
+        f"{REDDIT_RSS_URL}?{params}",
+        headers={"User-Agent": USER_AGENT, "Accept": "application/atom+xml"},
+    )
+    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+        root = ET.fromstring(resp.read())
+    ns = {"atom": "http://www.w3.org/2005/Atom"}
+    items: list[RawSourceItem] = []
+    for entry in root.findall("atom:entry", ns)[:limit]:
+        title = unescape(entry.findtext("atom:title", default="", namespaces=ns)).strip()
+        if not title:
+            continue
+        title = re.sub(r"\s+", " ", title)
+        link = entry.find("atom:link", ns)
+        href = link.attrib.get("href") if link is not None else None
+        published = _parse_iso(entry.findtext("atom:published", namespaces=ns))
+        external_id = entry.findtext("atom:id", namespaces=ns) or href or title
+        items.append(
+            RawSourceItem(
+                provider="reddit:r/stocks",
+                source_type=SourceType.social,
+                external_id=external_id,
+                text=title,
+                url=href,
+                published_at=published,
+            )
+        )
     return items
 
 

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Risk Engine Dashboard — design system
+   Risk Engine Dashboard - design system
    ========================================================================== */
 :root {
   /* S&P Global brand: Monza Red #D6002A, Black #000000, White */
@@ -69,12 +69,29 @@ body {
 }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active { background: var(--accent-soft); color: var(--accent-dark); }
-.nav-item .ico { width: 16px; text-align: center; opacity: 0.85; }
-
 .sidebar-foot { margin-top: auto; padding: 0.75rem; font-size: 0.7rem; color: var(--text-faint); line-height: 1.4; }
 
+.workspace { display: flex; flex: 1; min-width: 0; }
 .content { flex: 1; min-width: 0; padding: 1.5rem 2rem 3rem; max-width: 1180px; }
-.page-head { margin-bottom: 1.25rem; }
+.context-rail { width: 280px; flex-shrink: 0; padding: 1.5rem 1.5rem 3rem 0; }
+.rail-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem; margin-bottom: 0.85rem; }
+.rail-label { color: var(--text-faint); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.rail-mode, .rail-stat { font-size: 1rem; font-weight: 600; margin-top: 0.25rem; }
+.rail-copy { font-size: 0.83rem; margin: 0.45rem 0 0.75rem; color: var(--text-muted); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; font-size: 0.8rem; font-weight: 600; }
+.toggle-row input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle { width: 34px; height: 20px; border-radius: 20px; background: var(--border-strong); position: relative; cursor: pointer; }
+.toggle::after { content: ""; width: 14px; height: 14px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: transform 0.15s; }
+.toggle-row input:checked + .toggle { background: var(--accent); }
+.toggle-row input:checked + .toggle::after { transform: translateX(14px); }
+.rail-link { border: none; padding: 0; background: none; color: var(--accent-dark); font-size: 0.8rem; font-weight: 600; }
+.page-head { margin-bottom: 1.25rem;   .context-rail { width: 240px; }
+}
+@media (max-width: 760px) {
+  .workspace { display: block; }
+  .content { max-width: none; padding: 1.25rem; }
+  .context-rail { width: auto; padding: 0 1.25rem 1.25rem; }
+}
 .page-head h2 { margin: 0; font-size: 1.35rem; letter-spacing: -0.02em; }
 .page-head p { margin: 0.25rem 0 0; color: var(--text-muted); max-width: 62ch; }
 

@@ -16,6 +16,7 @@ from app.ingestion.live_sources import (
     fetch_gdelt_news,
     fetch_index_symbols,
     fetch_live_quotes,
+    fetch_reddit_rss,
     fetch_stocktwits,
 )
 from app.nlp.pipeline import analyze_item
@@ -24,6 +25,7 @@ from app.portfolio.rebalancer import Portfolio, RebalanceResult, rebalance
 
 DEFAULT_NEWS_QUERY = "apple OR microsoft OR jpmorgan OR pfizer OR exxon"
 SOCIAL_SYMBOLS = ("AAPL", "MSFT", "JPM", "XOM", "PG", "KO", "JNJ", "WMT", "CVX", "PFE")
+REDDIT_QUERY = "AAPL OR MSFT OR JPM OR XOM OR PG OR KO OR JNJ OR WMT OR CVX OR PFE"
 
 
 def poll_live(
@@ -49,6 +51,7 @@ def poll_live(
     signals = []
     source_errors: dict[str, str] = {}
     skipped_seen = 0
+    fetched_counts = {"gdelt_news": 0, "stocktwits": 0, "reddit": 0}
 
     def _keep_and_analyze(items):
         nonlocal skipped_seen
@@ -67,7 +70,9 @@ def poll_live(
 
     # Live news (GDELT)
     try:
-        signals.extend(_keep_and_analyze(fetch_gdelt_news(news_query, max_records=10)))
+        items = fetch_gdelt_news(news_query, max_records=10)
+        fetched_counts["gdelt_news"] = len(items)
+        signals.extend(_keep_and_analyze(items))
     except Exception as exc:  # degrade gracefully, never fabricate
         source_errors["news"] = f"{type(exc).__name__}: {exc}"
 
@@ -76,9 +81,20 @@ def poll_live(
     # cutting the ticker-spam noise that otherwise floods as Unknown/neutral.
     for sym in SOCIAL_SYMBOLS:
         try:
-            signals.extend(_keep_and_analyze(fetch_stocktwits(sym, limit=25, labeled_only=True)))
+            items = fetch_stocktwits(sym, limit=25, labeled_only=True)
+            fetched_counts["stocktwits"] += len(items)
+            signals.extend(_keep_and_analyze(items))
         except Exception as exc:
             source_errors[f"social:{sym}"] = f"{type(exc).__name__}: {exc}"
+
+    # Public Reddit RSS is optional enrichment. It has no native sentiment
+    # label, so sentiment remains an NLP inference with normal quality rules.
+    try:
+        items = fetch_reddit_rss(REDDIT_QUERY, limit=25)
+        fetched_counts["reddit"] = len(items)
+        signals.extend(_keep_and_analyze(items))
+    except Exception as exc:
+        source_errors["social:reddit"] = f"{type(exc).__name__}: {exc}"
 
     # Feed signals into the rebalancer (fresh signals only, at event time `now`).
     result: RebalanceResult = rebalance(portfolio, signals, now)
@@ -96,5 +112,14 @@ def poll_live(
         "quotes": quotes,
         "source_errors": source_errors,
         "skipped_seen": skipped_seen,
+        "source_counts": {
+            "fetched": fetched_counts,
+            "analyzed": {
+                "gdelt_news": sum(1 for s in signals if s.source_provider == "gdelt"),
+                "stocktwits": sum(1 for s in signals if s.source_provider.startswith("stocktwits:")),
+                "reddit": sum(1 for s in signals if s.source_provider == "reddit:r/stocks"),
+            },
+            "quotes": len(quotes),
+        },
         "polled_at": now.isoformat(),
     }

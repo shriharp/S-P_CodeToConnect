@@ -1,7 +1,7 @@
 import React from 'react'
 
 // Display-only helpers: these map backend fields to friendlier end-user labels.
-// They never change the underlying data — the contract's event_category stays
+// They never change the underlying data. The contract's event_category stays
 // "Unknown"; we just present it better.
 
 export const FLAG_MEANINGS = {

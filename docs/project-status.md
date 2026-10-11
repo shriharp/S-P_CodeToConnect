@@ -260,7 +260,7 @@ works with no network and no model download.
   caps, capped via Option A (respect MAX_WEIGHT, preserve ordering). 7 new
   loader tests. Suite at 83. P0.6 still pending the demo replay sequence.
 - 2026-10-10: P0.6 demo replay sequence (feat/demo-replay). Committed
-  data/demo_news.jsonl (15 items) + app/replay/demo_sequence.py drives the real
+  data/demo_news.jsonl (40 items) + app/replay/demo_sequence.py drives the real
   pipeline + rebalancer deterministically, offline, provenance=replay. Fixed a
   replay freshness bug: analyze_item now accepts an ingested_at override so
   replay stamps signals with event time (live default unchanged). 8 new tests.
@@ -277,6 +277,13 @@ works with no network and no model download.
   Suite at 99. REMAINING: GDELT news path still returns 429/JSON errors under
   test rate-limiting — needs a clean-network confirmation; frontend UX changes
   (HOT ranking, move manual input to Strategy Lab, animated replay) not started.
+- 2026-10-11: Demo/live UX and source enrichment. The frontend now has a
+  clearly labeled Demo mode toggle and reusable right-side context rail. Demo
+  mode loads the 40-item evidence-bearing replay corpus; it does not download
+  or silently redistribute a third-party dataset. Live mode remains the default.
+  Public r/stocks RSS was added as optional social enrichment; Reddit carries no
+  native sentiment label, so the normal NLP inference and quality gates apply.
+  The live poll response now reports per-source counts separately from errors.
 
 ## Status Maintenance Rules
 

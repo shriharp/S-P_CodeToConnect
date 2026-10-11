@@ -38,7 +38,7 @@ export default function Overview() {
               const s = byId.get(d.signal_id) || {}
               const delta = d.final_weight - d.original_weight
               return {
-                key: d.signal_id,
+                key: `${ev.event_id}-${d.signal_id}`,
                 ticker: d.ticker,
                 decision: d.decision,
                 delta,
@@ -61,8 +61,10 @@ export default function Overview() {
 
   const stepCount = history.length
   const idx = Math.min(activeIdx, Math.max(0, stepCount - 1))
-  const activeStep = steps[idx] || null
   const activeHistory = history[idx] || null
+  const activeStep = activeHistory
+    ? steps.find((step) => step.event_id === activeHistory.event_id) || null
+    : null
 
   // Full trajectory always shown; the scrubber just picks which step to inspect.
   const tickers = history.length ? Object.keys(history[0].weights) : []
@@ -108,7 +110,7 @@ export default function Overview() {
         {error && <div className="error">{error}</div>}
 
         {stepCount === 0 && (
-          <div className="empty">No rebalance events yet — run the demo replay to populate the timeline.</div>
+          <div className="empty">No rebalance events yet. Enable Demo mode to populate the timeline.</div>
         )}
 
         {stepCount > 0 && (
@@ -155,25 +157,25 @@ export default function Overview() {
               </div>
             </div>
 
-            {/* Active step justification — only this step, not all of them. */}
+            {/* Show only the active step justification. */}
             <div className="step-detail">
               <div className="ts">Step {idx + 1} · {activeStep?.timestamp?.slice(0, 16).replace('T', ' ') || history[idx].timestamp.slice(0, 16).replace('T', ' ')}</div>
               {activeStep && activeStep.causes.length > 0 ? (
                 activeStep.causes.map((c) => (
                   <div className="cause" key={c.key}>
                     <span className={c.delta > 0 ? 'pos' : 'neg'}>
-                      {c.ticker} {(c.original * 100).toFixed(1)}% → {(c.final * 100).toFixed(1)}%
+                      {c.ticker} {(c.original * 100).toFixed(1)}% to {(c.final * 100).toFixed(1)}%
                     </span>
                     <span className={`dec dec-${c.decision}`}>{c.decision}</span>
                     {c.sentiment != null && (
                       <span className="muted">sent {c.sentiment > 0 ? '+' : ''}{c.sentiment.toFixed(2)}</span>
                     )}
-                    {c.headline && <span className="cause-headline">“{c.headline}”</span>}
+                    {c.headline && <span className="cause-headline">"{c.headline}"</span>}
                   </div>
                 ))
               ) : (
                 <p className="muted" style={{ margin: 0 }}>
-                  No weight change at this step — all signals were skipped by policy gates.
+                  No weight change at this step. All signals were skipped by policy gates.
                 </p>
               )}
             </div>
@@ -187,7 +189,7 @@ export default function Overview() {
             <div>
               <h3>Price Overlay</h3>
               <div className="sub">
-                Real yfinance close prices, indexed to 100 — context only. Weight changes are
+                Real yfinance close prices, indexed to 100. Context only. Weight changes are
                 sentiment-driven targets, not market drift.
               </div>
             </div>

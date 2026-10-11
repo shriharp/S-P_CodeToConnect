@@ -57,7 +57,7 @@ export default function System() {
                 {status}
               </div>
             </div>
-            <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{count ?? '—'}</div></div>
+            <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{count ?? 'n/a'}</div></div>
             <div className="kpi"><div className="kpi-label">Rebalance events</div><div className="kpi-value">{ledger.length}</div></div>
             <div className="kpi"><div className="kpi-label">Weight points</div><div className="kpi-value">{history.length}</div></div>
           </div>
@@ -106,7 +106,7 @@ export default function System() {
             </tr>
             <tr>
               <td><span className="prov prov-replay">replay</span></td>
-              <td className="muted">Committed historical dataset re-run through the pipeline — deterministic, offline.</td>
+              <td className="muted">Committed historical dataset re-run through the pipeline. Deterministic and offline.</td>
             </tr>
             <tr>
               <td><span className="prov prov-synthetic">synthetic</span></td>
@@ -169,7 +169,7 @@ function BenchmarkPanel() {
                   {backend ? (
                     <table>
                       <tbody>
-                        <tr><th>Accuracy</th><td>{backend.accuracy == null ? '—' : `${(backend.accuracy * 100).toFixed(1)}%`}</td></tr>
+                        <tr><th>Accuracy</th><td>{backend.accuracy == null ? 'n/a' : `${(backend.accuracy * 100).toFixed(1)}%`}</td></tr>
                         <tr><th>Scored</th><td>{backend.scored} / {backend.total}</td></tr>
                         <tr><th>Abstentions</th><td>{backend.abstain}</td></tr>
                         <tr><th>Latency</th><td>{backend.latency_ms_per_item} ms/item</td></tr>

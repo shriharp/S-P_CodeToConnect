@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getSignals, livePoll, getSignalsOverview } from '../api.js'
+import { getSignals, livePoll, getSignalsOverview, runDemoReplay } from '../api.js'
 import { CategoryCell, FlagList } from '../components/display.jsx'
 import Pagination, { usePagination } from '../components/Pagination.jsx'
 
@@ -35,7 +35,7 @@ function SignalDetail({ signal, onClose }) {
         <div>
           <h3>{signal.company_name} ({signal.ticker || 'unresolved'})</h3>
           <div className="sub">
-            <ProvenanceBadge p={signal.provenance} /> · {signal.source_type} · {signal.source_provider}
+            <ProvenanceBadge p={signal.provenance} /> | {signal.source_type} | {signal.source_provider}
           </div>
         </div>
         <button className="ghost" onClick={onClose}>Close</button>
@@ -60,7 +60,7 @@ function SignalDetail({ signal, onClose }) {
             <strong style={{ fontSize: '0.8rem' }}>Source link</strong>
             <div style={{ marginTop: '0.25rem' }}>
               {signal.source_url
-                ? <a href={signal.source_url} target="_blank" rel="noreferrer">open original ↗</a>
+                ? <a href={signal.source_url} target="_blank" rel="noreferrer">Open original</a>
                 : <span className="muted">none</span>}
             </div>
           </div>
@@ -76,7 +76,7 @@ function SignalDetail({ signal, onClose }) {
         {signal.evidence_excerpts.length === 0 && <p className="muted">none extracted</p>}
         {signal.evidence_excerpts.map((e, i) => (
           <div className="excerpt" key={i}>
-            <span className="sup">{[...e.supports].join(', ')}</span>“{e.text}”
+            <span className="sup">{[...e.supports].join(', ')}</span>"{e.text}"
           </div>
         ))}
       </div>
@@ -84,7 +84,7 @@ function SignalDetail({ signal, onClose }) {
   )
 }
 
-export default function Signals() {
+export default function Signals({ demoMode = false }) {
   const [signals, setSignals] = useState([])
   const [overview, setOverview] = useState(null)
   const [selected, setSelected] = useState(null)
@@ -108,9 +108,12 @@ export default function Signals() {
 
   useEffect(() => {
     load()
+    if (demoMode) {
+      loadDemo()
+    }
     const t = setInterval(load, 10000) // poll for new signals
     return () => clearInterval(t)
-  }, [])
+  }, [demoMode])
 
   const poll = async () => {
     setPolling(true)
@@ -124,6 +127,16 @@ export default function Signals() {
       setError(e.message)
     } finally {
       setPolling(false)
+    }
+  }
+
+  const loadDemo = async () => {
+    setError(null)
+    try {
+      await runDemoReplay()
+      await load()
+    } catch (e) {
+      setError(e.message)
     }
   }
 
@@ -145,16 +158,19 @@ export default function Signals() {
         <div className="panel-head">
           <div>
             <h3>Live Ingestion</h3>
-            <div className="sub">GDELT news · StockTwits social · yfinance prices — all free sources</div>
+            <div className="sub">{demoMode ? 'Curated 40-item replay corpus with complete timestamps and evidence' : 'GDELT news, StockTwits social, Reddit RSS, and yfinance prices'}</div>
           </div>
-          <button className="action" onClick={poll} disabled={polling}>
-            {polling ? 'Polling…' : 'Poll live sources'}
+          <button className="action" onClick={demoMode ? loadDemo : poll} disabled={polling}>
+            {demoMode ? 'Load demo corpus' : (polling ? 'Polling...' : 'Poll live sources')}
           </button>
         </div>
         {pollResult && (
           <p className="muted" style={{ margin: 0 }}>
             {pollResult.signals.length} new signal(s) ·{' '}
             {pollResult.decision_event.consumed_signal_ids.length} consumed
+            {pollResult.source_counts?.fetched?.reddit != null && (
+              <> · Reddit RSS: {pollResult.source_counts.fetched.reddit} posts fetched, {pollResult.source_counts.analyzed.reddit} analyzed</>
+            )}
             {errKeys.length > 0 && <> · degraded: {errKeys.join(', ')}</>}
           </p>
         )}
@@ -166,13 +182,13 @@ export default function Signals() {
           <div className="panel-head">
             <div>
               <h3>Market Risk Overview</h3>
-              <div className="sub">Descriptive distributions over {overview.total} stored signals — nulls counted, never imputed</div>
+              <div className="sub">Descriptive distributions over {overview.total} stored signals. Nulls counted, never imputed.</div>
             </div>
           </div>
           <div className="kpis">
             <div className="kpi"><div className="kpi-label">Signals</div><div className="kpi-value">{overview.total}</div></div>
-            <div className="kpi"><div className="kpi-label">Mean sentiment</div><div className="kpi-value">{overview.sentiment.mean ?? '—'}</div></div>
-            <div className="kpi"><div className="kpi-label">Mean impact</div><div className="kpi-value">{overview.impact.mean ?? '—'}</div></div>
+            <div className="kpi"><div className="kpi-label">Mean sentiment</div><div className="kpi-value">{overview.sentiment.mean ?? 'n/a'}</div></div>
+            <div className="kpi"><div className="kpi-label">Mean impact</div><div className="kpi-value">{overview.impact.mean ?? 'n/a'}</div></div>
             <div className="kpi"><div className="kpi-label">Sentiment null</div><div className="kpi-value">{overview.sentiment.null}</div></div>
             <div className="kpi"><div className="kpi-label">Impact null</div><div className="kpi-value">{overview.impact.null}</div></div>
           </div>
@@ -203,7 +219,7 @@ export default function Signals() {
             <h3>Signal Feed</h3>
             <div className="sub">
               {sort === 'hot'
-                ? 'Ranked by impact × recency — high-signal items first.'
+                ? 'Ranked by impact and recency. High-signal items first.'
                 : 'Chronological, newest first.'} Polls every 10s.
             </div>
           </div>
@@ -224,14 +240,14 @@ export default function Signals() {
               <tr key={s.signal_id} className="clickable" onClick={() => setSelected(s)}>
                 <td>{s.company_name}</td>
                 <td className="num"><SentimentCell v={s.sentiment_score} /></td>
-                <td className="num">{s.impact_score ?? '—'}</td>
+                <td className="num">{s.impact_score ?? 'n/a'}</td>
                 <td><CategoryCell signal={s} /></td>
                 <td><ProvenanceBadge p={s.provenance} /></td>
                 <td><FlagList flags={s.quality_flags} /></td>
               </tr>
             ))}
             {ordered.length === 0 && (
-              <tr><td colSpan={6}><div className="empty">No signals yet — poll live sources or run a replay.</div></td></tr>
+              <tr><td colSpan={6}><div className="empty">No signals yet. Poll live sources or load the demo corpus.</div></td></tr>
             )}
           </tbody>
         </table>

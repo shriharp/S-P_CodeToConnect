@@ -97,7 +97,7 @@ export default function StrategyLab() {
                         <td className="num">{pct(result.original_weights[ticker])}</td>
                         <td className="num">{pct(result.proposed_weights[ticker])}</td>
                         <td className={`num ${delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'muted'}`}>
-                          {delta ? `${delta > 0 ? '+' : ''}${pct(delta)} pp` : '—'}
+                          {delta ? `${delta > 0 ? '+' : ''}${pct(delta)} pp` : 'n/a'}
                         </td>
                       </tr>
                     )

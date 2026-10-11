@@ -72,7 +72,7 @@ export default function Portfolio() {
           <div className="panel-head">
             <div>
               <h3>Current Holdings</h3>
-              <div className="sub">Latest target allocation — proposed mock weights, not executed</div>
+              <div className="sub">Latest target allocation. Proposed mock weights, not executed.</div>
             </div>
           </div>
           {latest ? (
@@ -94,7 +94,7 @@ export default function Portfolio() {
               </tbody>
             </table>
           ) : (
-            <div className="empty">No rebalance events yet — run the demo replay from Overview.</div>
+            <div className="empty">No rebalance events yet. Enable Demo mode from the right rail.</div>
           )}
         </div>
 
@@ -102,7 +102,7 @@ export default function Portfolio() {
           <div className="panel-head">
             <div>
               <h3>Sector Exposure</h3>
-              <div className="sub">First → latest rebalance. Bar length = exposure, shading = concentration. Target allocations.</div>
+              <div className="sub">First to latest rebalance. Bar length is exposure; shading is concentration.</div>
             </div>
           </div>
           {sectorRows.length ? (
@@ -148,7 +148,7 @@ export default function Portfolio() {
                 <div className="kpi"><div className="kpi-label">Window</div><div className="kpi-value">{perf.metrics.window_days}d</div></div>
                 <div className="kpi"><div className="kpi-label">Final index</div><div className="kpi-value">{perf.metrics.final_index}</div></div>
                 <div className="kpi"><div className="kpi-label">Max drawdown</div><div className="kpi-value">{perf.metrics.max_drawdown_pct}%</div></div>
-                <div className="kpi"><div className="kpi-label">Avg turnover</div><div className="kpi-value">{perf.metrics.turnover_pct ?? '—'}%</div></div>
+                <div className="kpi"><div className="kpi-label">Avg turnover</div><div className="kpi-value">{perf.metrics.turnover_pct ?? 'n/a'}%</div></div>
               </div>
               <LineChart
                 labels={perf.baselines.dates.map((d) => d.slice(5))}
@@ -170,7 +170,7 @@ export default function Portfolio() {
         <div className="panel-head">
           <div>
             <h3>Decision Ledger</h3>
-            <div className="sub">Auditable record of every rebalance — decision, reason, and before → after weight</div>
+            <div className="sub">Auditable record of every rebalance. Decision, reason, and before to after weight.</div>
           </div>
         </div>
         {ledger.length ? (
@@ -195,13 +195,13 @@ export default function Portfolio() {
                     const delta = before != null && after != null ? after - before : null
                     return (
                       <tr key={i}>
-                        <td>{d.ticker || '—'}</td>
+                        <td>{d.ticker || 'n/a'}</td>
                         <td><span className={`dec dec-${d.decision}`}>{d.decision}</span></td>
-                        <td className="muted">{d.reason || '—'}</td>
-                        <td className="num">{before == null ? '—' : pct(before)}</td>
-                        <td className="num">{after == null ? '—' : pct(after)}</td>
+                        <td className="muted">{d.reason || 'n/a'}</td>
+                        <td className="num">{before == null ? 'n/a' : pct(before)}</td>
+                        <td className="num">{after == null ? 'n/a' : pct(after)}</td>
                         <td className={`num ${delta > 1e-9 ? 'pos' : delta < -1e-9 ? 'neg' : 'muted'}`}>
-                          {delta == null ? '—' : `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(2)} pp`}
+                          {delta == null ? 'n/a' : `${delta > 0 ? '+' : ''}${(delta * 100).toFixed(2)} pp`}
                         </td>
                       </tr>
                     )
