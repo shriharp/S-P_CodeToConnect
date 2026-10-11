@@ -1,4 +1,4 @@
-"""Live data sources: GDELT (news), StockTwits (social), yfinance (prices).
+"""Live data sources: SEC EDGAR, GDELT, StockTwits, Reddit, and yfinance.
 
 All free, keyless (AGENTS.md "Data Influx"). Uses stdlib urllib to avoid new
 dependencies; yfinance is already a dependency. Each fetcher returns normalized
@@ -24,10 +24,23 @@ from app.ingestion.adapters import RawSourceItem
 from app.ingestion.retry import request_with_backoff
 
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
+SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 STOCKTWITS_URL = "https://api.stocktwits.com/api/2/streams/symbol/{symbol}.json"
 REDDIT_RSS_URL = "https://www.reddit.com/r/stocks/search.rss"
 GDELT_MIN_INTERVAL = 6.0  # seconds between requests (GDELT asks for >=5s; be safe)
 USER_AGENT = "risk-engine-hackathon/0.1 (educational demo)"
+SEC_CIKS = {
+    "AAPL": "0000320193",
+    "MSFT": "0000789019",
+    "JPM": "0000019617",
+    "XOM": "0000034088",
+    "PG": "0000080424",
+    "KO": "0000021344",
+    "JNJ": "0000200406",
+    "WMT": "0000104169",
+    "CVX": "0000093410",
+    "PFE": "0000078003",
+}
 
 _gdelt_lock = threading.Lock()
 _gdelt_last = 0.0
@@ -90,6 +103,50 @@ def fetch_gdelt_news(query: str, max_records: int = 10) -> list[RawSourceItem]:
             )
         )
     return items
+
+
+def fetch_sec_filings(
+    ticker: str,
+    max_records: int = 5,
+    forms: tuple[str, ...] = ("8-K", "10-Q", "10-K"),
+) -> list[RawSourceItem]:
+    """Fetch recent company filings from SEC EDGAR submissions.
+
+    The submissions JSON is public and keyless. Only filing metadata and the
+    SEC-provided filing URL are retained; the filing body is not redistributed.
+    """
+    cik = SEC_CIKS.get(ticker.upper())
+    if cik is None:
+        raise ValueError(f"unsupported SEC ticker: {ticker}")
+    data = _get_json(SEC_SUBMISSIONS_URL.format(cik=cik))
+    recent = (data.get("filings") or {}).get("recent") or {}
+    rows: list[RawSourceItem] = []
+    for index, form in enumerate(recent.get("form") or []):
+        if form not in forms:
+            continue
+        accession = (recent.get("accessionNumber") or [])[index]
+        primary_document = (recent.get("primaryDocument") or [])[index]
+        filing_date = (recent.get("filingDate") or [])[index]
+        accession_path = accession.replace("-", "")
+        url = (
+            f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/"
+            f"{accession_path}/{primary_document}"
+        )
+        company_name = data.get("name") or ticker.upper()
+        text = f"{company_name} filed {form} with the SEC on {filing_date}."
+        rows.append(
+            RawSourceItem(
+                provider="sec:edgar",
+                source_type=SourceType.news,
+                external_id=f"sec:{cik}:{accession}",
+                text=text,
+                url=url,
+                published_at=_parse_date(filing_date),
+            )
+        )
+        if len(rows) >= max_records:
+            break
+    return rows
 
 
 def _parse_gdelt_date(raw: str | None) -> datetime | None:
@@ -183,6 +240,15 @@ def fetch_reddit_rss(query: str, limit: int = 20) -> list[RawSourceItem]:
 
 def _parse_iso(raw: str | None) -> datetime | None:
     if not raw:
+        return None
+
+
+def _parse_date(raw: str | None) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
         return None
     try:
         return datetime.fromisoformat(raw.replace("Z", "+00:00"))

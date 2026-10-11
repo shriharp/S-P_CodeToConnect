@@ -18,6 +18,7 @@ from app.ingestion.live_sources import (
     fetch_index_symbols,
     fetch_live_quotes,
     fetch_reddit_rss,
+    fetch_sec_filings,
     fetch_stocktwits,
 )
 from app.nlp.pipeline import analyze_item
@@ -56,7 +57,7 @@ def poll_live(
     signals = []
     source_errors: dict[str, str] = {}
     skipped_seen = 0
-    fetched_counts = {"gdelt_news": 0, "stocktwits": 0, "reddit": 0}
+    fetched_counts = {"gdelt_news": 0, "sec_edgar": 0, "stocktwits": 0, "reddit": 0}
 
     def _keep_and_analyze(items):
         nonlocal skipped_seen
@@ -88,6 +89,21 @@ def poll_live(
         signals.extend(_keep_and_analyze(items))
     except Exception as exc:  # degrade gracefully, never fabricate
         source_errors["news"] = f"{type(exc).__name__}: {exc}"
+
+    # SEC EDGAR metadata is an additive authoritative filing signal.
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {
+            executor.submit(fetch_sec_filings, symbol, 5): symbol
+            for symbol in SOCIAL_SYMBOLS
+        }
+        for future in as_completed(futures):
+            symbol = futures[future]
+            try:
+                items = future.result()
+                fetched_counts["sec_edgar"] += len(items)
+                signals.extend(_keep_and_analyze(items))
+            except Exception as exc:
+                source_errors[f"sec:{symbol}"] = f"{type(exc).__name__}: {exc}"
 
     # Live social (StockTwits) — one shared item per symbol's stream.
     # labeled_only keeps just posts StockTwits self-labeled Bullish/Bearish,
@@ -152,6 +168,7 @@ def poll_live(
             "fetched": fetched_counts,
             "analyzed": {
                 "gdelt_news": sum(1 for s in signals if s.source_provider == "gdelt"),
+                "sec_edgar": sum(1 for s in signals if s.source_provider == "sec:edgar"),
                 "stocktwits": sum(1 for s in signals if s.source_provider.startswith("stocktwits:")),
                 "reddit": sum(1 for s in signals if s.source_provider == "reddit:r/stocks"),
             },

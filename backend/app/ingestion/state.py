@@ -64,6 +64,21 @@ class IngestionState:
                 """,
                 (provider, external_id, published_at.isoformat() if published_at else None, now, now, status),
             )
+            if published_at is not None:
+                self._conn.execute(
+                    """
+                    INSERT INTO provider_state(provider, interval_seconds, newest_source_at)
+                    VALUES (?, 60, ?)
+                    ON CONFLICT(provider) DO UPDATE SET
+                        newest_source_at = CASE
+                            WHEN provider_state.newest_source_at IS NULL
+                              OR provider_state.newest_source_at < excluded.newest_source_at
+                            THEN excluded.newest_source_at
+                            ELSE provider_state.newest_source_at
+                        END
+                    """,
+                    (provider, published_at.isoformat()),
+                )
             self._conn.commit()
 
     def ensure_provider(self, provider: str, interval_seconds: int) -> None:

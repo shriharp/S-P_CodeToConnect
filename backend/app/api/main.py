@@ -53,7 +53,8 @@ def get_ingestion_state() -> IngestionState:
     if _ingestion_state is None:
         _ingestion_state = IngestionState(INGESTION_STATE_PATH)
         for provider, interval in (
-            ("gdelt", 300), ("stocktwits", 30), ("reddit:r/stocks", 120), ("yfinance", 30)
+            ("gdelt", 300), ("sec:edgar", 300), ("stocktwits", 30),
+            ("reddit:r/stocks", 120), ("yfinance", 30)
         ):
             _ingestion_state.ensure_provider(provider, interval)
     return _ingestion_state
@@ -579,19 +580,33 @@ def live_poll(
     analyzed = out.get("source_counts", {}).get("analyzed", {})
     provider_map = {
         "gdelt_news": "gdelt",
+        "sec_edgar": "sec:edgar",
         "stocktwits": "stocktwits",
         "reddit": "reddit:r/stocks",
     }
     for key, provider in provider_map.items():
+        provider_error = (
+            out.get("source_errors", {}).get("news")
+            if key == "gdelt_news"
+            else next(
+                (
+                    message
+                    for name, message in out.get("source_errors", {}).items()
+                    if name.startswith("sec:")
+                ),
+                None,
+            )
+            if key == "sec_edgar"
+            else out.get("source_errors", {}).get(f"social:{provider.split(':')[0]}")
+        )
         state.update_provider(
             provider,
             attempted=True,
-            success=provider not in out.get("source_errors", {}),
+            success=provider_error is None,
             fetched=fetched.get(key, 0),
             analyzed=analyzed.get(key, 0),
             skipped=out.get("skipped_seen", 0) if key == "stocktwits" else 0,
-            error=out.get("source_errors", {}).get(provider)
-                or out.get("source_errors", {}).get("news" if key == "gdelt_news" else f"social:{provider.split(':')[0]}"),
+            error=provider_error,
         )
     state.update_provider(
         "yfinance",

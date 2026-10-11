@@ -32,6 +32,9 @@ Track:
 - Reused source code.
 
 Current external sources:
+- SEC EDGAR submissions API: free public filing metadata and links; requests
+  use the SEC's public-data access guidance and retain attribution links.
+  Filing bodies are not bundled or redistributed by this application.
 - GDELT DOC 2.0: free public news search API; rate limits apply. Responses are
   retained only as source evidence and are not bundled as a dataset.
 - StockTwits stream API: free public social stream used with its crowd labels;

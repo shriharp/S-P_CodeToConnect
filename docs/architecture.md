@@ -47,6 +47,10 @@ exponential backoff, and `Retry-After` when providers return rate limits or
 temporary server failures. `GET /live/health` exposes this state for the
 observability screen.
 
+SEC EDGAR submission metadata is polled for the tracked companies as an
+authoritative filing source. It is normalized through the same source-item
+contract and deduplication path as news and social items.
+
 `GET /live/events` provides server-sent events for completed polls. The hub is
 an in-process notification layer only; persistence remains authoritative in
 SQLite and the frontend falls back to REST refreshes if the stream disconnects.
