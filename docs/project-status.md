@@ -441,3 +441,14 @@ integration + `/data`, with tests for portfolio invariants and ledger correctnes
   three-stage flow, prepared scenarios, and a prominent read-only counterfactual
   label.
 - Validation: frontend production build passed and `git diff --check` passed.
+
+## Containerized judge runtime
+
+- Added production Dockerfiles for the FastAPI backend and React frontend.
+- Added Docker Compose for one-command startup at `http://localhost:5173`.
+- Compose enables the backend-owned ingestion scheduler by default and persists
+  SQLite runtime state with named volumes.
+- Nginx serves the frontend, provides SPA fallback, and proxies REST plus SSE
+  traffic to the backend.
+- Refreshed `docs/architecture.drawio` and generated the current architecture
+  facts diagram under `.github/modernize/assessment/engines/facts/`.

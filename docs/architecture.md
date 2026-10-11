@@ -29,6 +29,12 @@ and analysis counts are reported separately.
 - Modular monolith initially.
 - Containerization for reproducibility.
 
+The recommended judge runtime is Docker Compose. It builds a production React
+image served by Nginx and a FastAPI image with the backend-owned ingestion
+scheduler enabled by default. Nginx proxies REST and SSE requests to FastAPI,
+and named volumes preserve SQLite state and replay/market seed files across
+container restarts.
+
 Keep ingestion, analysis, persistence, API, and portfolio-policy boundaries distinct.
 
 ## Live ingestion runtime

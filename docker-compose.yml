@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      INGESTION_SCHEDULER_ENABLED: "true"
+      INGESTION_INTERVAL_SECONDS: "90"
+    volumes:
+      - kairos-data:/app/data
+      - kairos-recordings:/app/recordings
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  kairos-data:
+  kairos-recordings:

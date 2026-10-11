@@ -36,7 +36,7 @@ free data; a deterministic replay path keeps demos reproducible without a networ
 
 ## 2. Architecture & Tech Stack
 
-[Architecture Diagram](docs/architecture.drawio)
+[Architecture Diagram](docs/architecture.drawio) · [Container architecture facts](.github/modernize/assessment/engines/facts/architecture-diagram.md)
 
 
 **Data flow:** live sources → ingestion adapters → NLP pipeline (entity
@@ -73,6 +73,54 @@ are short and often non-directional (the engine abstains rather than guessing);
 market-cap-based seed weights are used for the initial mock allocation.
 
 ## 4. Quickstart & Installation
+
+### Recommended: Docker Compose
+
+This is the simplest way to run the complete KAIROS application on a judge's
+machine. It requires Docker Desktop or Docker Engine with Compose; Python,
+Node.js, npm, and model downloads are not required on the host.
+
+```bash
+git clone <your-repo-url>
+cd <repo-folder>
+docker compose up --build
+```
+
+Open **http://localhost:5173**. The Compose setup starts:
+
+- `frontend`: a production React build served by Nginx.
+- `backend`: the FastAPI API and background ingestion scheduler.
+- `kairos-data`: a named volume for SQLite databases and seeded replay/market
+  files.
+- `kairos-recordings`: a named volume for optional recordings.
+
+The containerized backend enables the scheduler by default with a 90-second
+combined provider cycle. It continues polling after the browser is closed.
+Provider health, queue activity, retries, and partial failures are visible in
+the Observability tab. The first live cycle may take time because providers are
+rate-limited and some sources can be temporarily unavailable.
+
+To stop the application:
+
+```bash
+docker compose down
+```
+
+To stop it and remove persisted demo/runtime data:
+
+```bash
+docker compose down -v
+```
+
+To run without live network polling while preserving the same container setup:
+
+```bash
+INGESTION_SCHEDULER_ENABLED=false docker compose up --build
+```
+
+The frontend is exposed on port `5173`; the backend remains internal to the
+Compose network. The Nginx container proxies `/api` and the live SSE stream to
+FastAPI, so judges only need to open one URL.
 
 Runtime: Python 3.11+ and Node 18+ on macOS/Linux/Windows.
 
