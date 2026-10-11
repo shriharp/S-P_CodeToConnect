@@ -131,7 +131,7 @@ def analyze_item(
     if method_version_event:
         method_version = f"{method_version}+{method_version_event}"
 
-    factors = rubric.extract_factors(item.text)
+    factors = rubric.extract_factors(item.text, event_category=event_category.value)
     impact_score = rubric.score(factors)
     impact_explanation = rubric.explain(factors, impact_score) if impact_score else None
     impact_excerpts = sentence_excerpts(item.text, factors.evidence, EvidenceSupports.impact)

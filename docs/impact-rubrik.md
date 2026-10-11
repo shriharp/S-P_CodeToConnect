@@ -35,14 +35,34 @@ Unknown/insufficient evidence: null.
 - Preserve the evidence and explanation behind the assigned score.
 
 ## Implementation Status
-This is a qualitative rubric, not yet a fully specified numerical algorithm.
+Deterministic scoring with modular factor extraction (2026-10-10).
 
-Before claiming reproducible scoring:
-- Define measurable extracted factors.
-- Specify decision boundaries.
-- Implement deterministic calculations.
-- Test representative cases and abstention.
-- Document ambiguity and limitations.
+Architecture is split so the extractor can be swapped for a better
+financial-domain model later without touching scoring:
+- `app/impact/factors.py` — `ImpactFactors` contract + `FactorExtractor` ABC.
+- `app/impact/deterministic.py` — current extractor impl.
+- `app/impact/rubric.py` — deterministic `score()`/`explain()` only.
+
+The extractor reads BOTH quantified cues (percentages) AND qualitative
+magnitude phrases ("surge", "collapse", "record high"), with negation handling
+("avoided a decline" abstains), contrast/offset detection ("dip offset by
+strength" abstains), and optional event-category context. This fixes the old
+quant-only behavior where purely qualitative headlines ("sales boom") scored
+null. Scoring bands and abstention rules below are unchanged.
+
+### Measured on a diverse dev eval set (2026-10-10)
+`app/impact/eval_cases.py` (37 synthetic fixtures: qualitative, quantified,
+negation, neutral, continuity, scope, mixed). Reproduce:
+`cd backend && .venv/bin/python -m pytest tests/test_impact_eval.py -q`.
+- Scored band-accuracy: 21/24 = 0.875
+- Abstention-correct (neutral/negated/mixed): 13/13
+Synthetic fixtures only — NOT a real-world accuracy claim.
+
+### Remaining gaps (known limitations)
+- Operational-halt phrasing ("production halted permanently at one plant") can
+  still abstain — no magnitude phrase and no percentage anchors it.
+- Qualitative magnitude is keyword-tiered, not model-read; a finance-tuned
+  magnitude model (via the FactorExtractor seam) is the intended upgrade path.
 
 ## Representative Cases
 - Minor product improvement: potentially low impact.
